@@ -1,0 +1,21 @@
+user_query
+How many patients are in the database?
+What are the different admission types in the database?
+How many admissions are there in total?
+List the ITEMIDs and their labels from the D_ITEMS table.
+How many distinct care units are represented in the ICUSTAYS table?
+Which patient has the highest number of ICU stays?
+What is the average length of stay in the ICU?
+How many different types of lab tests exist in the LABEVENTS table?
+List the top 5 most frequent CPT codes in the CPTEVENTS table.
+What are the different categories of notes in the NOTEEVENTS table?
+"For each patient, show the number of times they were admitted to the ICU and the average length of their ICU stays."
+"Which caregiver documented the most CHARTEVENTS, and how many events did they document?"
+Find the top 3 most common discharge locations for patients who expired in the hospital.
+"What are the most frequently administered drugs in the PRESCRIPTIONS table, along with their counts?"
+Which microbiology organism has the highest number of isolates recorded?
+"For each admission, find the time difference (in hours) between the first and last CHARTEVENT recorded."
+"Identify patients who have had a microbiology culture for a specific organism (e.g., 'Staphylococcus aureus') and also have a prescription for an antibiotic that is effective against that organism."
+Calculate the average number of days between the start and end dates of prescriptions for each drug type.
+Analyze the relationship between the number of procedures performed during an ICU stay and the length of that stay.
+Find the most common pairs of diagnoses that occur together for the same admission.
