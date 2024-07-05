@@ -2,20 +2,39 @@ user_query
 How many patients are in the database?
 What are the different admission types in the database?
 How many admissions are there in total?
-List the ITEMIDs and their labels from the D_ITEMS table.
 How many distinct care units are represented in the ICUSTAYS table?
 Which patient has the highest number of ICU stays?
 What is the average length of stay in the ICU?
 How many different types of lab tests exist in the LABEVENTS table?
 List the top 5 most frequent CPT codes in the CPTEVENTS table.
-What are the different categories of notes in the NOTEEVENTS table?
-"For each patient, show the number of times they were admitted to the ICU and the average length of their ICU stays."
-"Which caregiver documented the most CHARTEVENTS, and how many events did they document?"
-Find the top 3 most common discharge locations for patients who expired in the hospital.
-"What are the most frequently administered drugs in the PRESCRIPTIONS table, along with their counts?"
-Which microbiology organism has the highest number of isolates recorded?
-"For each admission, find the time difference (in hours) between the first and last CHARTEVENT recorded."
-"Identify patients who have had a microbiology culture for a specific organism (e.g., 'Staphylococcus aureus') and also have a prescription for an antibiotic that is effective against that organism."
-Calculate the average number of days between the start and end dates of prescriptions for each drug type.
-Analyze the relationship between the number of procedures performed during an ICU stay and the length of that stay.
-Find the most common pairs of diagnoses that occur together for the same admission.
+List the patients with the top 5 longest stays in the ICU and the most common procedures they underwent during their stay.
+Calculate the mortality rate by care unit for patients diagnosed with pneumonia (ICD9_CODE starting with '486') and admitted to the ICU
+"Calculate the average number of medications prescribed per patient by care unit and age group (below 50, 50-70, above 70)"
+"For patients with more than one hospital admission, list the total number of procedures they underwent and their average length of stay"
+Calculate the average length of stay and readmission rate for patients by their initial care unit
+" List the total number of procedures performed for patients in different age groups (below 30, 30-60, above 60)."
+ Find the most frequent diagnosis in each care unit.
+ Calculate the average cost of medications per patient group based on their insurance type.
+ Determine the ICU admission rates for different ethnicities.
+ List the most common procedures for patients who stayed in the ICU for more than 15 days.
+ Calculate the readmission rates within 30 days for patients diagnosed with diabetes.
+ Determine the mortality rate for different age groups diagnosed with heart failure.
+ Calculate the average length of stay for patients who underwent surgery.
+ List the top 5 medications prescribed for patients diagnosed with pneumonia.
+ Find the total number of procedures performed for patients with different types of insurance.
+" Analyze the correlation between admission source (e.g., emergency room, clinic referral) and patient outcomes (discharge vs. death)."
+ Determine the correlation between the length of ICU stay and the number of procedures performed.
+ Identify the top 5 most common diagnoses for patients aged 65 and older.
+" Analyze the outcomes (discharge, death) for patients who were transferred between different care units."
+ Calculate the readmission rates for patients by their initial care unit.
+ Determine the differences in ICU admission rates between male and female patients.
+ Analyze the correlation between the length of stay and total medication costs for ICU patients.
+ Identify trends in ICU admissions over the past 5 years.
+" Calculate the mortality rates for patients diagnosed with multiple conditions (e.g., diabetes and heart failure)."
+ Determine the average number of procedures performed for patients with different marital statuses.
+List the top 5 most common diagnoses for patients who stayed in the ICU for more than 10 days.
+Calculate the average length of stay for patients diagnosed with heart failure.
+List the top 3 care units with the highest average length of stay.
+Find the number of patients who had more than 5 procedures in the same admission.
+List patients and the total number of procedures they underwent.
+List the most common procedures performed for patients aged 65 and older.

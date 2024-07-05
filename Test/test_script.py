@@ -5,12 +5,18 @@ from generate_response import get_response
 
 
 def main():
-    test_queries = pd.read_csv("test_queries.csv")
+    test_queries = pd.read_csv("test_queries2.csv")
 
-    db = init_database(user="root", password="mohit", host="localhost", port="3306", database="mimiciiiv14")
+    db = init_database(
+        user="root",
+        password="mohit",
+        host="localhost",
+        port="3306",
+        database="mimiciiiv14",
+    )
 
     for index, row in test_queries.iterrows():
-        user_query = row['user_query']
+        user_query = row["user_query"]
         chat_history = []
 
         try:
@@ -22,7 +28,7 @@ def main():
         except Exception as e:
             print(f"Query: {user_query}\nError: {str(e)}\n")
 
-        time.sleep(5)
+        time.sleep(60)
 
 
 if __name__ == "__main__":

@@ -10,6 +10,9 @@ if "chat_history" not in st.session_state:
         ),
     ]
 
+if "technique" not in st.session_state:
+    st.session_state.technique = "base"
+
 st.set_page_config(page_title="Chat with MySQL", page_icon=":speech_balloon:")
 
 st.title("Chat with MySQL")
@@ -38,6 +41,18 @@ with st.sidebar:
             st.session_state.db = db
             st.success("Connected to database!")
 
+st.subheader("Choose Prompt Technique")
+if st.button("Base Prompt"):
+    st.session_state.technique = "base"
+if st.button("Chain of Thought (CoT)"):
+    st.session_state.technique = "cot"
+if st.button("ReAct"):
+    st.session_state.technique = "react"
+if st.button("Least to Most"):
+    st.session_state.technique = "least_to_most"
+
+st.write(f"Current Prompt Technique: {st.session_state.technique}")
+
 for message in st.session_state.chat_history:
     if isinstance(message, AIMessage):
         with st.chat_message("AI"):
@@ -55,7 +70,7 @@ if user_query is not None and user_query.strip() != "":
 
     with st.chat_message("AI"):
         response = get_response(
-            user_query, st.session_state.db, st.session_state.chat_history
+            user_query, st.session_state.db, st.session_state.chat_history, st.session_state.technique
         )
         st.markdown(response)
 
