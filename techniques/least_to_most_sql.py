@@ -1,4 +1,3 @@
-# techniques/least_to_most_sql.py
 import os
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -14,54 +13,48 @@ genai.configure(api_key=GOOGLE_API_KEY)
 
 
 def get_sql_query(user_query: str, db: SQLDatabase, chat_history: list):
-    template_subtask = """
-    You are a data analyst working with a MySQL Database. Your task is to answer the user's question about the company's database by writing a SQL query.
+    template = """
+        You are a data analyst working with a MySQL Database. Use the least-to-most technique to gradually increase the complexity of your thinking process:
 
-    Break down the task into simpler sub-tasks and solve each one.
+        1. Start with the simplest interpretation of the user's question.
+        2. Gradually add more details to refine the query.
+        3. Combine these details to construct the final SQL query.
 
-    <SCHEMA>{schema}</SCHEMA>
+        <SCHEMA>{schema}</SCHEMA>
 
-    Conversation History:
-    {chat_history}
+        Conversation History:
+        {chat_history}
 
-    Sub-task Question: {question}
+        Question: {question}
 
-    SQL Query:
-    """
+        Step-by-step Thought Process:
+        1. Simple interpretation of the user's question.
+        2. Add more details to refine the query.
+        3. Construct the final SQL query.
 
-    prompt_subtask = ChatPromptTemplate.from_template(template_subtask)
+        Provide only the final SQL query:
+
+        SQL Query:
+        """
+
+    prompt = ChatPromptTemplate.from_template(template)
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest")
 
     def get_schema(_):
         return db.get_table_info()
 
-    sub_tasks = break_down_query(user_query)
-    sql_queries = []
+    sql_chain = (
+        RunnablePassthrough.assign(schema=get_schema) | prompt | llm | StrOutputParser()
+    )
 
-    for sub_task in sub_tasks:
-        sql_chain = (
-                RunnablePassthrough.assign(schema=get_schema) | prompt_subtask | llm | StrOutputParser()
-        )
-        raw_query = sql_chain.invoke(
-            {
-                "question": sub_task,
-                "chat_history": chat_history,
-            }
-        )
-        sql_queries.append(clean_sql_query(raw_query))
+    raw_query = sql_chain.invoke(
+        {
+            "question": user_query,
+            "chat_history": chat_history,
+        }
+    )
 
-    final_query = combine_queries(sql_queries)
-    return final_query
-
-
-def break_down_query(query: str) -> list:
-    # Logic to break down the main query into simpler sub-tasks
-    return ["sub-task 1", "sub-task 2", "sub-task 3"]
-
-
-def combine_queries(queries: list) -> str:
-    # Logic to combine the results of the sub-tasks into a final query
-    return " ".join(queries)
+    return clean_sql_query(raw_query)
 
 
 def clean_sql_query(query: str) -> str:
@@ -79,7 +72,7 @@ def get_response(user_query: str, db: SQLDatabase, chat_history: list):
         You are a data analyst explaining MySQL query results to a non-technical user.
         Given the MySQL database schema, question, the executed SQL query, and its response, write a clear and informative natural language response. Ensure your response accurately addresses the question and interprets the results in a way that is easy for a non-technical user to understand. If the response is empty or does not directly answer the question, explain why.
 
-        Break down the explanation into simpler sub-tasks and solve each one.
+        Think step-by-step through the problem before explaining the response.
 
         <SCHEMA>{schema}</SCHEMA>
 
@@ -97,16 +90,16 @@ def get_response(user_query: str, db: SQLDatabase, chat_history: list):
         llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest")
 
         chain = (
-                RunnableAssign(
-                    {
-                        "schema": lambda _: db.get_table_info(),
-                        "query": lambda _: sql_query,
-                        "response": lambda _: sql_response,
-                    }
-                )
-                | prompt
-                | llm
-                | StrOutputParser()
+            RunnableAssign(
+                {
+                    "schema": lambda _: db.get_table_info(),
+                    "query": lambda _: sql_query,
+                    "response": lambda _: sql_response,
+                }
+            )
+            | prompt
+            | llm
+            | StrOutputParser()
         )
 
         llm_response = chain.invoke(
