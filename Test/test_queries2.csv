@@ -1,12 +1,2 @@
 user_query
 "Calculate the average number of medications prescribed per patient by care unit and age group (below 50, 50-70, above 70)"
-"For patients with more than one hospital admission, list the total number of procedures they underwent and their average length of stay"
-"List the total number of procedures performed for patients in different age groups (below 30, 30-60, above 60)."
-List the most common procedures for patients who stayed in the ICU for more than 15 days.
-Calculate the average length of stay for patients who underwent surgery.
-List the top 5 medications prescribed for patients diagnosed with pneumonia.
-Find the total number of procedures performed for patients with different types of insurance.
-"Analyze the correlation between admission source (e.g., emergency room, clinic referral) and patient outcomes (discharge vs. death)."
-Determine the correlation between the length of ICU stay and the number of procedures performed.
-Identify the top 5 most common diagnoses for patients aged 65 and older.
-"Analyze the outcomes (discharge, death) for patients who were transferred between different care units."

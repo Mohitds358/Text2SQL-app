@@ -1,0 +1,119 @@
+user_query,generated_sql_query,generated_answer
+"Calculate the average number of medications prescribed per patient by care unit and age group (below 50, 50-70, above 70)","SELECT
+  icu.FIRST_CAREUNIT,
+  CASE
+    WHEN ROUND((
+      TIMESTAMPDIFF(YEAR, pat.DOB, adm.ADMITTIME)
+    ) / 10) * 10 < 50
+    THEN 'Below 50'
+    WHEN ROUND((
+      TIMESTAMPDIFF(YEAR, pat.DOB, adm.ADMITTIME)
+    ) / 10) * 10 BETWEEN 50
+    AND 70
+    THEN '50-70'
+    ELSE 'Above 70'
+  END AS age_group,
+  AVG(num_meds) AS average_medications
+FROM icustays AS icu
+JOIN admissions AS adm
+  ON icu.HADM_ID = adm.HADM_ID
+JOIN patients AS pat
+  ON adm.SUBJECT_ID = pat.SUBJECT_ID
+LEFT JOIN (
+  SELECT
+    HADM_ID,
+    COUNT(DISTINCT DRUG) AS num_meds
+  FROM prescriptions
+  GROUP BY
+    HADM_ID
+) AS meds
+  ON icu.HADM_ID = meds.HADM_ID
+GROUP BY
+  icu.FIRST_CAREUNIT,
+  age_group;","Here's a breakdown of the average number of medications prescribed to patients, organized by their age group and the care unit they were admitted to:
+
+**Key Findings:**
+
+* **MICU (Medical Intensive Care Unit):** 
+    * Patients below 50 years old were prescribed an average of 38 medications.
+    * Patients aged 50-70 received an average of 42 medications.
+    * Patients above 70 years old were prescribed an average of 34 medications.
+
+* **CCU (Cardiac Care Unit):**
+    * Patients below 50: Average of 143 medications (This number seems high and might be worth investigating further).
+    * Patients 50-70: Average of 32 medications.
+    * Patients above 70: Average of 41 medications.
+
+* **SICU (Surgical Intensive Care Unit):**
+    * Patients below 50: Average of 75 medications.
+    * Patients 50-70: Average of 36 medications.
+    * Patients above 70: Average of 33 medications.
+
+* **CSRU (Cardiothoracic Surgical Recovery Unit):**
+    * Patients 50-70: Average of 45 medications.
+    * Patients above 70: Average of 36 medications.
+
+* **TSICU (Trauma Surgical Intensive Care Unit):**
+    * Patients below 50: Average of 45 medications.
+    * Patients 50-70: Average of 24 medications.
+    * Patients above 70: Average of 25 medications. 
+
+**Important Note:**  The average medication count for the CCU in the ""below 50"" age group is unusually high. This could indicate a data anomaly or a specific case that requires further investigation."
+"For patients with more than one hospital admission, list the total number of procedures they underwent and their average length of stay","WITH PatientAdmissionCounts AS (
+  SELECT
+    SUBJECT_ID,
+    COUNT(DISTINCT HADM_ID) AS AdmissionCount
+  FROM admissions
+  GROUP BY
+    SUBJECT_ID
+  HAVING
+    AdmissionCount > 1
+), PatientProcedureCounts AS (
+  SELECT
+    p.SUBJECT_ID,
+    COUNT(DISTINCT pr.ROW_ID) AS ProcedureCount
+  FROM patients AS p
+  JOIN PatientAdmissionCounts AS pac
+    ON p.SUBJECT_ID = pac.SUBJECT_ID
+  LEFT JOIN procedures_icd AS pr
+    ON p.SUBJECT_ID = pr.SUBJECT_ID
+  GROUP BY
+    p.SUBJECT_ID
+), PatientLOS AS (
+  SELECT
+    p.SUBJECT_ID,
+    AVG(a.DISCHTIME - a.ADMITTIME) AS AvgStayLength
+  FROM patients AS p
+  JOIN PatientAdmissionCounts AS pac
+    ON p.SUBJECT_ID = pac.SUBJECT_ID
+  JOIN admissions AS a
+    ON p.SUBJECT_ID = a.SUBJECT_ID
+  GROUP BY
+    p.SUBJECT_ID
+)
+SELECT
+  ppc.SUBJECT_ID,
+  ProcedureCount,
+  AvgStayLength
+FROM PatientProcedureCounts AS ppc
+JOIN PatientLOS AS pl
+  ON ppc.SUBJECT_ID = pl.SUBJECT_ID;","This table shows the number of procedures and the average length of stay for patients that have been admitted to the hospital more than once. 
+
+Each row represents a unique patient identified by their 'SUBJECT\_ID'. 'ProcedureCount' tells us the total number of medical procedures that patient underwent across all their visits. 'AvgStayLength', shown as a large decimal number, represents the average length of their hospital stays in seconds. For instance, a value like 86400.0000 in 'AvgStayLength' would mean the patient's average stay was 86400 seconds, which translates to 24 hours or one full day."
+"List the total number of procedures performed for patients in different age groups (below 30, 30-60, above 60).","SELECT
+  SUM(CASE WHEN age < 30 THEN 1 ELSE 0 END) AS 'Under 30',
+  SUM(CASE WHEN age BETWEEN 30 AND 60 THEN 1 ELSE 0 END) AS '30 to 60',
+  SUM(CASE WHEN age > 60 THEN 1 ELSE 0 END) AS 'Over 60'
+FROM (
+  SELECT
+    p.SUBJECT_ID,
+    ROUND((
+      DATEDIFF(a.ADMITTIME, p.DOB) / 365
+    ), 0) AS age
+  FROM patients AS p
+  JOIN admissions AS a
+    ON p.SUBJECT_ID = a.SUBJECT_ID
+) AS age_info
+JOIN procedures_icd AS pi
+  ON age_info.SUBJECT_ID = pi.SUBJECT_ID;","Answer:
+A total of 1310 procedures were performed with 40 procedures for patients under 30 years old, 170 for patients between 30 and 60 years old, and 1100 for patients over 60 years old."
