@@ -12,7 +12,7 @@ GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 genai.configure(api_key=GOOGLE_API_KEY)
 
 
-def get_sql_query(user_query: str, db: SQLDatabase, chat_history: list):
+def get_sql_query(user_query: str, db: SQLDatabase, chat_history: list, schema_str: str):
     template = """
     You are a data analyst working with a MySQL Database. Your task is to answer the user's question about the company's database by writing a SQL query.
 
@@ -30,7 +30,7 @@ def get_sql_query(user_query: str, db: SQLDatabase, chat_history: list):
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest")
 
     def get_schema(_):
-        return db.get_table_info()
+        return schema_str
 
     sql_chain = (
             RunnablePassthrough.assign(schema=get_schema) | prompt | llm | StrOutputParser()
@@ -52,9 +52,9 @@ def clean_sql_query(query: str) -> str:
     return query.strip()
 
 
-def get_response(user_query: str, db: SQLDatabase, chat_history: list):
+def get_response(user_query: str, db: SQLDatabase, chat_history: list, schema_str: str):
     try:
-        sql_query = get_sql_query(user_query, db, chat_history)
+        sql_query = get_sql_query(user_query, db, chat_history, schema_str)
         sql_response = db.run(sql_query)
 
         template = """
@@ -79,7 +79,7 @@ def get_response(user_query: str, db: SQLDatabase, chat_history: list):
         chain = (
                 RunnableAssign(
                     {
-                        "schema": lambda _: db.get_table_info(),
+                        "schema": lambda _: schema_str,
                         "query": lambda _: sql_query,
                         "response": lambda _: sql_response,
                     }
@@ -93,7 +93,7 @@ def get_response(user_query: str, db: SQLDatabase, chat_history: list):
             {
                 "question": user_query,
                 "chat_history": chat_history,
-                "schema": db.get_table_info(),
+                "schema": schema_str,
                 "query": sql_query,
                 "response": sql_response,
             }

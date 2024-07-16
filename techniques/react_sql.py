@@ -53,12 +53,9 @@ react_template = """
 prompt = ChatPromptTemplate.from_template(react_template)
 
 
-def get_sql_query(user_query: str, db: SQLDatabase, chat_history: list):
-    def get_schema(_):
-        return db.get_table_info()
-
+def get_sql_query(user_query: str, db: SQLDatabase, chat_history: list, schema: str):
     sql_chain = (
-        RunnablePassthrough.assign(schema=get_schema) | prompt | llm | StrOutputParser()
+        RunnableAssign({"schema": lambda _: schema}) | prompt | llm | StrOutputParser()
     )
 
     raw_query = sql_chain.invoke(
@@ -77,19 +74,10 @@ def clean_sql_query(query: str) -> str:
     return query.strip()
 
 
-def get_response(user_query: str, db: SQLDatabase, chat_history: list):
+def get_response(user_query: str, db: SQLDatabase, chat_history: list, schema: str):
     try:
-        # Create the SQL agent using the ReAct prompt technique
         agent_executor = create_sql_agent(llm, db=db, agent_type="openai-tools", verbose=True)
-        sql_query = get_sql_query(user_query, db, chat_history)
-
-        # Validate the SQL query against the schema
-        schema = db.get_table_info()
-        schema_dict = parse_schema(schema)
-        valid = validate_query(sql_query, schema_dict)
-        if not valid:
-            raise ValueError("Generated query contains invalid columns or tables.")
-
+        sql_query = get_sql_query(user_query, db, chat_history, schema)
         sql_response = db.run(sql_query)
 
         response_template = """
@@ -115,7 +103,7 @@ def get_response(user_query: str, db: SQLDatabase, chat_history: list):
         chain = (
             RunnableAssign(
                 {
-                    "schema": lambda _: db.get_table_info(),
+                    "schema": lambda _: schema,
                     "query": lambda _: sql_query,
                     "response": lambda _: sql_response,
                 }
@@ -129,7 +117,7 @@ def get_response(user_query: str, db: SQLDatabase, chat_history: list):
             {
                 "question": user_query,
                 "chat_history": chat_history,
-                "schema": db.get_table_info(),
+                "schema": schema,
                 "query": sql_query,
                 "response": sql_response,
             }
@@ -145,31 +133,3 @@ def get_response(user_query: str, db: SQLDatabase, chat_history: list):
     except Exception as e:
         print(f"Error generating response: {e}")
         return "Error generating response"
-
-
-def parse_schema(schema: str) -> dict:
-    """
-    Parses the schema string into a dictionary format.
-    """
-    schema_dict = {}
-    for line in schema.splitlines():
-        if line.startswith("CREATE TABLE"):
-            table_name = line.split()[2].strip('"')
-            schema_dict[table_name] = []
-        elif line.strip().startswith('"'):
-            column_name = line.strip().split()[0].strip('"')
-            schema_dict[table_name].append(column_name)
-    return schema_dict
-
-
-def validate_query(query: str, schema: dict) -> bool:
-    """
-    Validates the SQL query against the provided schema.
-    """
-    query_tables = [table for table in schema.keys() if table in query]
-    for table in query_tables:
-        table_columns = schema.get(table, [])
-        for column in table_columns:
-            if column not in query:
-                return False
-    return True
