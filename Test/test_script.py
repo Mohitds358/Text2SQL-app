@@ -24,7 +24,7 @@ def extract_sql_and_answer(response):
 
 def main():
     # Load test queries
-    test_queries = pd.read_csv("P&E Prompt Test/Medium_TestPE.csv")
+    test_queries = pd.read_csv("P&E Prompt Test/Hard_TestPE.csv")
 
     # Initialize database connection
     db = init_database(
@@ -75,7 +75,7 @@ def main():
             test_queries.at[index, 'Answer'] = f"Error: {str(e)}"
 
         # Save the updated dataframe after each query
-        test_queries.to_csv("P&E Prompt Test/Medium_TestPE.csv", index=False)
+        test_queries.to_csv("P&E Prompt Test/Hard_TestPE.csv", index=False)
 
         # Sleep for 1 minute between queries
         if index < len(test_queries) - 1:

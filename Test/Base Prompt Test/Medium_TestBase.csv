@@ -1,0 +1,494 @@
+NLQ,SQL Query,Answer
+List the subject IDs and their admission types for patients who were admitted through a clinic referral/premature.,"SELECT SUBJECT_ID, ADMISSION_TYPE
+FROM admissions
+WHERE ADMISSION_LOCATION = 'Clinic Referral/Premature';","This shows the list of patient IDs (SUBJECT\_ID) and their admission type (ADMISSION\_TYPE) who were referred by the clinic due to premature reasons. All these patients were admitted to the hospital via the emergency room. 
+
+Please note that some patients appear in the list multiple times reflecting multiple admissions to the hospital. For example, patient 41976 had 9 separate admissions, all through the ER."
+List the top 5 most frequent diagnoses.,"SELECT d.SHORT_TITLE, COUNT(*) AS frequency
+FROM diagnoses_icd AS di
+JOIN d_icd_diagnoses AS d ON di.ICD9_CODE = d.ICD9_CODE
+GROUP BY d.SHORT_TITLE
+ORDER BY frequency DESC
+LIMIT 5;","The top 5 most frequent diagnoses are:
+
+1. Hypertension NOS (High blood pressure, not otherwise specified): diagnosed 53 times.
+2. Atrial fibrillation (Irregular heart rhythm): diagnosed 48 times. 
+3. Acute kidney failure NOS (Sudden loss of kidney function, not otherwise specified): diagnosed 45 times.
+4. CHF NOS (Congestive heart failure, not otherwise specified): diagnosed 39 times.
+5. Acute respiratory failure (Lungs unable to provide enough oxygen): diagnosed 31 times."
+"Show the subject IDs, diagnoses, and admission locations for admissions in the last month where the ethnicity contains 'black'.",rating respons,enerating response
+Count the number of admissions for each admission type.,"SELECT ADMISSION_TYPE, COUNT(*) AS ADMISSION_COUNT
+FROM admissions
+GROUP BY ADMISSION_TYPE;","Answer:
+There are 3 different admission types in the hospital system:
+
+* ELECTIVE: 8 patients
+* EMERGENCY: 119 patients
+* URGENT: 2 patients"
+Find the average length of stay (rounded to 2 decimal places) for each admission type.,rating respons,enerating response
+Count the number of prescriptions for each drug type,rating respons,enerating response
+Find patients who have been admitted more than three times,"SELECT SUBJECT_ID, COUNT(*) AS AdmissionCount
+FROM admissions
+GROUP BY SUBJECT_ID
+HAVING COUNT(*) > 3;","Answer:
+Patient with ID 41976 has been admitted to the hospital 15 times."
+Calculate the average time between admission and first ICU transfer,"SELECT 
+  AVG(TIMESTAMPDIFF(SECOND, a.ADMITTIME, t.INTIME)) AS avg_time_to_icu
+FROM admissions a
+JOIN transfers t ON a.HADM_ID = t.HADM_ID
+WHERE t.EVENTTYPE = 'transfer'
+  AND t.CURR_CAREUNIT = 'ICU';",The query returned no data (None). This indicates that there are no records matching the criteria of patients being transferred to the ICU. This could mean that the hospital does not have an ICU or that there were no instances in the dataset where a patient was transferred to the ICU.
+Calculate the mortality rate for each admission type:,"SELECT 
+    a.admission_type,
+    COUNT(DISTINCT a.hadm_id) AS total_admissions,
+    SUM(CASE WHEN a.deathtime IS NOT NULL THEN 1 ELSE 0 END) AS total_deaths,
+    ROUND((SUM(CASE WHEN a.deathtime IS NOT NULL THEN 1 ELSE 0 END) / COUNT(DISTINCT a.hadm_id)) * 100, 2) AS mortality_rate
+FROM admissions a
+GROUP BY a.admission_type;","The query results show the mortality rate for each admission type:
+
+* **ELECTIVE:** There were 8 elective admissions, and 8 of them resulted in death, leading to a 100% mortality rate.
+* **EMERGENCY:** There were 119 emergency admissions, and all 119 resulted in death, leading to a 100% mortality rate. 
+* **URGENT:** There were 2 urgent admissions, and both resulted in death, leading to a 100% mortality rate."
+Calculate the average time between consecutive medication administrations for a specific drug,,"Answer:
+        The provided SQL query is empty. To calculate the average time between consecutive medication administrations for a specific drug, we need more information and a proper SQL query. 
+
+        Please provide me with:
+        1. The name of the drug you are interested in.
+        2. The table containing medication administration data (e.g.,  'inputevents_mv', 'prescriptions').
+        3. The column in that table indicating the medication name.
+        4. The column indicating the administration time. 
+
+        With this information, I can construct an appropriate SQL query and provide you with the average time between administrations for the specific drug."
+Calculate the average length of stay for patients based on their insurance type,"SELECT
+  a.INSURANCE,
+  AVG(DATEDIFF(a.DISCHTIME, a.ADMITTIME)) AS average_los
+FROM admissions AS a
+GROUP BY
+  a.INSURANCE;","This table shows the average length of stay in the hospital for patients, based on their insurance type.  Patients with private insurance had the longest average stay at 15 days, followed by Medicaid patients at 12 days. Medicare patients stayed an average of 8 days, while patients with government insurance had the shortest average stay at only 2 days."
+What are the top 5 most frequently prescribed drugs in the ICU?,rating respons,enerating response
+Which caregivers have administered the most medications limit to 5?,"SELECT cg.label, COUNT(*) AS total_administrations
+FROM caregivers cg
+JOIN chartevents ce ON cg.cgid = ce.cgid
+WHERE ce.itemid IN (SELECT itemid FROM d_items WHERE category = 'Medications')
+GROUP BY cg.label
+ORDER BY total_administrations DESC
+LIMIT 5;","The top 5 caregivers who have administered the most medications are not available in the database. This is because the database only keeps track of the caregiver ID associated with each medication administration event, but not the actual count of administrations."
+What is the average number of chart events per ICU stay for each care unit?,"SELECT t2.first_careunit, AVG(t1.cnt) AS average_chart_events
+FROM (
+    SELECT icustay_id, COUNT(*) AS cnt
+    FROM chartevents
+    GROUP BY icustay_id
+) AS t1
+JOIN icustays AS t2 ON t1.icustay_id = t2.icustay_id
+GROUP BY t2.first_careunit;","Answer:
+The average number of chart events per ICU stay varies depending on the care unit. Here's a breakdown:
+
+* **MICU (Medical Intensive Care Unit):** An average of 4893 chart events per stay.
+* **CCU (Cardiac Care Unit):** An average of 6174 chart events per stay.
+* **SICU (Surgical Intensive Care Unit):** An average of 8617 chart events per stay.
+* **CSRU (Cardiac Surgery Recovery Unit):** An average of 4596 chart events per stay.
+* **TSICU (Trauma Surgical Intensive Care Unit):** An average of 4838 chart events per stay."
+What is the average number of medications prescribed per ICU stay?,"SELECT 
+  AVG(p.total_medications) AS average_medications_per_icustay
+FROM (
+  SELECT 
+    icustay_id,
+    COUNT(DISTINCT drug) AS total_medications
+  FROM prescriptions
+  GROUP BY 
+    icustay_id
+) AS p;",The average number of medications prescribed per stay in the ICU is 28.79.
+What is the average length of stay (rounded to 2 decimal places) for each admission type?,"SELECT 
+    ADMISSION_TYPE,
+    ROUND(AVG(DATEDIFF(DISCHTIME, ADMITTIME)), 2) AS AVERAGE_LOS_DAYS
+FROM admissions
+GROUP BY ADMISSION_TYPE;","The average length of stay varies depending on the admission type:
+
+* **Elective admissions** have an average length of stay of **11.38 days**.
+* **Emergency admissions** have an average length of stay of **9.25 days**.
+* **Urgent admissions** have an average length of stay of **6.50 days**."
+How many prescriptions (rounded to the nearest hundred) are there for each drug type?,rating respons,enerating response
+What are the top 5 most common primary diagnoses?,"SELECT d.SHORT_TITLE, COUNT(*) AS count
+FROM diagnoses_icd AS di
+JOIN d_icd_diagnoses AS d ON di.ICD9_CODE = d.ICD9_CODE
+WHERE di.SEQ_NUM = 1
+GROUP BY d.SHORT_TITLE
+ORDER BY count DESC
+LIMIT 5;","This SQL query looked at the primary diagnoses of patients and found the top 5 most frequent diagnoses. 
+
+Here are the top 5 most common primary diagnoses and how many times they appear: 
+
+1. Septicemia (blood infection): 15 patients
+2. Acute respiratory failure (lungs unable to provide enough oxygen): 6 patients
+3. Pneumonia (lung infection), organism not specified: 6 patients 
+4. Subendocardial infarction, initial (heart attack that affects the inner layer of the heart muscle): 5 patients
+5. Congestive heart failure (heart doesn't pump blood effectively): 4 patients"
+What are the top 3 ethnicities with the highest number of admissions?,"SELECT ETHNICITY, COUNT(*) AS admission_count
+FROM admissions
+GROUP BY ETHNICITY
+ORDER BY admission_count DESC
+LIMIT 3;","The top three ethnicities with the highest number of admissions are:
+
+1. **White:** with 86 admissions.
+2. **Hispanic/Latino - Puerto Rican:** with 15 admissions.
+3. **Unknown/Not Specified:** with 11 admissions."
+What is the average age (rounded to the nearest whole number) of patients for each admission type?,"SELECT
+  a.ADMISSION_TYPE,
+  ROUND(AVG(TIMESTAMPDIFF(YEAR, p.DOB, a.ADMITTIME))) AS average_age
+FROM admissions AS a
+JOIN patients AS p
+  ON a.SUBJECT_ID = p.SUBJECT_ID
+GROUP BY
+  a.ADMISSION_TYPE;","The query results show the average age of patients at the time of admission, broken down by admission type:
+
+* **EMERGENCY**: The average age of patients admitted for emergencies is 85 years old.
+* **ELECTIVE**: The average age of patients admitted for elective procedures is 74 years old.
+* **URGENT**: The average age of patients admitted for urgent reasons is 75 years old."
+What are the top 5 most frequently performed procedures?,rating respons,enerating response
+What is the mortality rate (rounded to 2 decimal places) for each admission type?,"SELECT
+    admission_type,
+    ROUND(
+        SUM(CASE WHEN deathtime IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / COUNT(*),
+        2
+    ) AS mortality_rate
+FROM admissions
+GROUP BY admission_type;","The query results show the mortality rate for each admission type. The mortality rate is calculated as the percentage of patients who died during their hospital stay, rounded to two decimal places. 
+
+Here's a breakdown of the results:
+
+* **ELECTIVE:** 100.00% mortality rate
+* **EMERGENCY:** 100.00% mortality rate
+* **URGENT:** 100.00% mortality rate
+
+This means that for all three admission types - elective, emergency, and urgent - every single patient admitted under these categories died during their hospital stay. This is unusual and suggests there might be an error in the data or calculation."
+What are the top 5 care units with the highest number of patient stays?,"SELECT
+  FIRST_CAREUNIT,
+  COUNT(*) AS num_stays
+FROM icustays
+GROUP BY
+  FIRST_CAREUNIT
+ORDER BY
+  num_stays DESC
+LIMIT 5;","The top 5 care units with the highest number of patient stays are:
+
+1. **MICU** (Medical Intensive Care Unit) with 77 stays.
+2. **SICU** (Surgical Intensive Care Unit) with 23 stays.
+3. **CCU** (Cardiac Care Unit) with 19 stays.
+4. **TSICU** (Trauma Surgical Intensive Care Unit) with 11 stays.
+5. **CSRU** (Cardiothoracic Surgical Recovery Unit) with 6 stays."
+What is the average number of procedures (rounded to the nearest whole number) per admission for each admission type?,"SELECT
+  a.ADMISSION_TYPE,
+  ROUND(AVG(p.procedures_per_admission)) AS average_procedures
+FROM admissions a
+LEFT JOIN (
+  SELECT
+    HADM_ID,
+    COUNT(*) AS procedures_per_admission
+  FROM procedures_icd
+  GROUP BY
+    HADM_ID
+) p ON a.HADM_ID = p.HADM_ID
+GROUP BY
+  a.ADMISSION_TYPE;","This table shows the average number of procedures per admission type:
+
+* **EMERGENCY Admissions:** On average, patients admitted for emergency have 4 procedures. 
+* **ELECTIVE Admissions:** Patients with elective admissions have an average of 5 procedures.
+* **URGENT Admissions:**  Patients admitted urgently have an average of 4 procedures."
+What is the average number of chart events (rounded to the nearest hundred) per ICU stay?,"SELECT
+  ROUND(COUNT(DISTINCT ce.ROW_ID) / COUNT(DISTINCT i.ICUSTAY_ID), -2) AS average_chart_events
+FROM chartevents ce
+JOIN icustays i
+  ON ce.ICUSTAY_ID = i.ICUSTAY_ID;","The average number of chart events per ICU stay is approximately 5,700."
+What are the top 5 diagnoses with the longest average length of stay (rounded to 2 decimal places)?,rating respons,enerating response
+What is the average number of prescriptions (rounded to the nearest whole number) per admission?,"SELECT ROUND(COUNT(DISTINCT p.ROW_ID) / COUNT(DISTINCT a.HADM_ID)) AS average_prescriptions_per_admission
+FROM prescriptions p
+JOIN admissions a ON p.HADM_ID = a.HADM_ID;","The average number of prescriptions per admission is 85. This means that, on average, a patient admitted to the hospital receives 85 prescriptions throughout their stay."
+What are the top 5 medications with the highest average dosage (rounded to 2 decimal places)?,rating respons,enerating response
+What is the average number of transfers (rounded to the nearest whole number) per admission?,"SELECT ROUND(COUNT(DISTINCT t.row_id) / COUNT(DISTINCT a.hadm_id)) AS average_transfers
+FROM admissions a
+LEFT JOIN transfers t ON a.hadm_id = t.hadm_id;",The average number of transfers per admission is 4.
+What are the top 5 admission types with the highest average number of diagnoses (rounded to the nearest whole number)?,"SELECT ADMISSION_TYPE, ROUND(AVG(num_diagnoses)) AS average_diagnoses
+FROM admissions a
+JOIN (
+    SELECT HADM_ID, COUNT(*) AS num_diagnoses
+    FROM diagnoses_icd
+    GROUP BY HADM_ID
+) AS d ON a.HADM_ID = d.HADM_ID
+GROUP BY ADMISSION_TYPE
+ORDER BY average_diagnoses DESC
+LIMIT 5;","The top 5 admission types with the highest average number of diagnoses are:
+
+1. **EMERGENCY** with an average of **14 diagnoses** per admission.
+2. **ELECTIVE** with an average of **10 diagnoses** per admission.
+3. **URGENT** with an average of **9 diagnoses** per admission.
+
+There were only three admission types found within the top 5."
+What are the top 5 services with the highest number of callouts?,"SELECT CALLOUT_SERVICE, COUNT(*) AS CALLOUT_COUNT
+FROM callout
+GROUP BY CALLOUT_SERVICE
+ORDER BY CALLOUT_COUNT DESC
+LIMIT 5;","The top 5 services with the highest number of callouts are:
+
+1. **MED (Medical):** 47 callouts 
+2. **SURG (Surgery):** 7 callouts
+3. **CCU (Cardiac Care Unit):** 5 callouts
+4. **TSURG (Thoracic Surgery):** 4 callouts 
+5. **CSURG (Cardiovascular Surgery):** 3 callouts"
+What is the average length of ICU stay (rounded to 2 decimal places) for each care unit?,"SELECT
+  FIRST_CAREUNIT,
+  ROUND(AVG(TIME_TO_SEC(TIMEDIFF(OUTTIME, INTIME)) / 3600), 2) AS average_stay_hours
+FROM icustays
+GROUP BY
+  FIRST_CAREUNIT;","The average length of stay in the ICU varies depending on the care unit. Here's a breakdown:
+
+* **CCU (Cardiac Care Unit):** Patients in this unit stay for an average of 138.09 hours.
+* **CSRU:**  The average stay in this unit is 87.15 hours.
+* **MICU (Medical Intensive Care Unit):** Patients in this unit stay for an average of 94.93 hours. 
+* **SICU (Surgical Intensive Care Unit):** The average stay in this unit is 135.58 hours.
+* **TSICU (Trauma Surgical Intensive Care Unit):** Patients in this unit stay for an average of 86.15 hours."
+What are the top 5 ethnicities with the highest average number of procedures (rounded to the nearest whole number)?,"SELECT
+  a.ETHNICITY,
+  ROUND(AVG(p.SEQ_NUM)) AS average_procedures -- Calculate the average number of procedures for each ethnicity
+FROM admissions AS a
+JOIN procedures_icd AS p
+  ON a.SUBJECT_ID = p.SUBJECT_ID AND a.HADM_ID = p.HADM_ID
+GROUP BY
+  a.ETHNICITY
+ORDER BY
+  average_procedures DESC
+LIMIT 5;","The top 5 ethnicities with the highest average number of procedures are:
+
+1. **UNABLE TO OBTAIN:**  Patients with this ethnicity designation had an average of 9 procedures. 
+2. **HISPANIC OR LATINO:** Patients with this ethnicity designation had an average of 7 procedures.
+3. **WHITE:** Patients with this ethnicity designation had an average of 5 procedures.
+4. **UNKNOWN/NOT SPECIFIED:** Patients with this ethnicity designation had an average of 4 procedures.
+5. **BLACK/AFRICAN AMERICAN:** Patients with this ethnicity designation had an average of 3 procedures."
+What are the top 5 admission types with the highest average number of prescriptions (rounded to the nearest whole number)?,"SELECT ADMISSION_TYPE, ROUND(AVG(prescription_count)) AS average_prescriptions
+FROM admissions a
+LEFT JOIN (
+    SELECT HADM_ID, COUNT(*) AS prescription_count
+    FROM prescriptions
+    GROUP BY HADM_ID
+) AS p ON a.HADM_ID = p.HADM_ID
+GROUP BY ADMISSION_TYPE
+ORDER BY average_prescriptions DESC
+LIMIT 5;","The top 3 admission types with the highest average number of prescriptions are:
+
+1. **EMERGENCY** with an average of **86** prescriptions.
+2. **ELECTIVE** with an average of **75** prescriptions.
+3. **URGENT** with an average of **32** prescriptions. 
+
+While the query was designed to return the top 5 admission types, there were only 3 different admission types found in your database."
+What is the average number of chart events (rounded to the nearest hundred) per admission for each admission type?,"SELECT
+  a.ADMISSION_TYPE,
+  ROUND(AVG(ce.chart_events_per_admission), -2) AS average_chart_events
+FROM admissions a
+LEFT JOIN (
+  SELECT
+    HADM_ID,
+    COUNT(*) AS chart_events_per_admission
+  FROM chartevents
+  GROUP BY
+    HADM_ID
+) ce
+  ON a.HADM_ID = ce.HADM_ID
+GROUP BY
+  a.ADMISSION_TYPE;","The results show the average number of chart events per admission type, rounded to the nearest hundred:
+
+* **EMERGENCY Admissions:** On average, there are 6,200 chart events per admission.
+* **ELECTIVE Admissions:** On average, there are 3,800 chart events per admission.
+* **URGENT Admissions:** On average, there are 3,800 chart events per admission."
+What are the top 5 procedures with the highest average duration (rounded to 2 decimal places)?,rating respons,enerating response
+What is the average number of distinct caregivers (rounded to the nearest whole number) per ICU stay?,"SELECT ROUND(AVG(cg_count), 0) AS average_distinct_caregivers
+FROM (
+    SELECT COUNT(DISTINCT cg.cgid) as cg_count, ce.ICUSTAY_ID
+    FROM chartevents ce
+    JOIN caregivers cg ON ce.cgid = cg.cgid
+    GROUP BY ce.ICUSTAY_ID
+) AS subquery;",The average number of distinct caregivers per ICU stay is 16.
+What is the average number of diagnoses (rounded to the nearest whole number) for each insurance type?,"SELECT INSURANCE, ROUND(AVG(num_diagnoses)) AS average_diagnoses
+FROM (
+  SELECT a.HADM_ID, a.INSURANCE, COUNT(DISTINCT d.ICD9_CODE) AS num_diagnoses
+  FROM admissions a
+  LEFT JOIN diagnoses_icd d ON a.HADM_ID = d.HADM_ID
+  GROUP BY a.HADM_ID, a.INSURANCE
+) AS subquery
+GROUP BY INSURANCE;","This table shows the average number of diagnoses a patient has, rounded to the nearest whole number, based on their insurance type:
+
+* **Medicare:** Patients with Medicare have an average of 14 diagnoses.
+* **Medicaid:** Patients with Medicaid have an average of 13 diagnoses.
+* **Private:** Patients with Private insurance have an average of 11 diagnoses. 
+* **Government:** Patients with Government insurance have an average of 7 diagnoses."
+What is the average length of stay (rounded to 2 decimal places) for each day of the week of admission?,"SELECT
+  DAYNAME(admittime) AS admission_day,
+  ROUND(AVG(DATEDIFF(dischtime, admittime)), 2) AS avg_length_of_stay
+FROM admissions
+GROUP BY admission_day
+ORDER BY 
+  CASE admission_day
+    WHEN 'Sunday' THEN 1
+    WHEN 'Monday' THEN 2
+    WHEN 'Tuesday' THEN 3
+    WHEN 'Wednesday' THEN 4
+    WHEN 'Thursday' THEN 5
+    WHEN 'Friday' THEN 6
+    WHEN 'Saturday' THEN 7
+  END;","This SQL query returns the average length of stay in the hospital for patients admitted on each day of the week. Here's a breakdown of the results:
+
+* **Sunday**: Patients admitted on Sunday had an average stay of 6.93 days.
+* **Monday**: Patients admitted on Monday had an average stay of 8.08 days.
+* **Tuesday**: Patients admitted on Tuesday had an average stay of 11.53 days.
+* **Wednesday**: Patients admitted on Wednesday had an average stay of 9.28 days.
+* **Thursday**: Patients admitted on Thursday had an average stay of 6.21 days.
+* **Friday**: Patients admitted on Friday had an average stay of 13.83 days.
+* **Saturday**: Patients admitted on Saturday had an average stay of 12.15 days."
+What are the top 5 care units with the highest average number of procedures (rounded to the nearest whole number) per stay?,rating respons,enerating response
+What is the average age (rounded to the nearest whole number) of patients for each admission location?,"SELECT
+    a.admission_location,
+    ROUND(AVG(YEAR(a.admittime) - YEAR(p.dob))) AS average_age
+FROM admissions a
+JOIN patients p ON a.subject_id = p.subject_id
+GROUP BY a.admission_location;","The query returns the average age of patients at each admission location. Here's a breakdown:
+
+* **EMERGENCY ROOM ADMIT:** The average age of patients admitted through the Emergency Room is 92 years old.
+* **TRANSFER FROM HOSP/EXTRAM:** The average age of patients transferred from another hospital or external facility is 77 years old.
+* **PHYS REFERRAL/NORMAL DELI:** Patients referred by a physician or admitted for normal delivery have an average age of 72 years old. 
+* **CLINIC REFERRAL/PREMATURE:**  Patients referred from a clinic or admitted for premature delivery have an average age of 63 years old.
+* **TRANSFER FROM SKILLED NUR:** The average age of patients transferred from a skilled nursing facility is 66 years old."
+What is the average number of lab events (rounded to the nearest hundred) per admission?,"SELECT ROUND(COUNT(*) / (SELECT COUNT(DISTINCT HADM_ID) FROM admissions), -2) AS average_lab_events
+FROM labevents;","Answer:
+There are on average 600 lab events per admission."
+What is the average length of stay (rounded to 2 decimal places) for each insurance type?,rating respons,enerating response
+What is the average number of procedures (rounded to the nearest whole number) per admission?,"SELECT
+  ROUND(
+    AVG(procedures_per_admission.procedure_count)
+  ) AS average_procedures
+FROM (
+  SELECT
+    p.hadm_id,
+    COUNT(DISTINCT p.icd9_code) AS procedure_count
+  FROM procedures_icd AS p
+  GROUP BY
+    p.hadm_id
+) AS procedures_per_admission;",The average number of procedures per admission is 4.
+What are the top 5 services with the highest number of transfers?,"SELECT CURR_SERVICE, COUNT(*) AS num_transfers
+FROM services
+GROUP BY CURR_SERVICE
+ORDER BY num_transfers DESC
+LIMIT 5;","The top 5 hospital services with the most patient transfers are:
+
+1. **MED**: 87 transfers
+2. **OMED**: 16 transfers
+3. **SURG**: 15 transfers
+4. **CMED**: 14 transfers
+5. **CSURG**: 6 transfers 
+
+While we don't have the exact definitions for these abbreviations, they likely refer to different medical specialties (like Cardiology or Neurology) or departments within the hospital."
+What is the average number of prescriptions (rounded to the nearest whole number) per admission for each insurance type?,"SELECT
+  a.INSURANCE,
+  ROUND(AVG(p.prescription_count)) AS average_prescriptions
+FROM admissions a
+LEFT JOIN (
+  SELECT
+    HADM_ID,
+    COUNT(*) AS prescription_count
+  FROM prescriptions
+  GROUP BY
+    HADM_ID
+) p
+  ON a.HADM_ID = p.HADM_ID
+GROUP BY
+  a.INSURANCE;","This table shows the average number of prescriptions per hospital admission, rounded to the nearest whole number, for patients with each insurance type:
+
+* Medicare: 77 prescriptions
+* Private: 124 prescriptions 
+* Medicaid: 121 prescriptions
+* Government: 30 prescriptions"
+What are the top 5 most common locations for procedures?,"SELECT LOCATION, COUNT(*) AS ProcedureCount
+FROM procedureevents_mv
+GROUP BY LOCATION
+ORDER BY ProcedureCount DESC
+LIMIT 5;","The top 5 most common locations for procedures are:
+
+1. Unknown: 635 procedures
+2. Right Radial: 12 procedures
+3. L Antecube: 11 procedures 
+4. Right IJ: 11 procedures
+5. LL Ant Forearm: 8 procedures 
+
+It seems that for the majority of procedures, the location was not specified and is listed as ""Unknown""."
+What are the top 5 most common diagnoses for patients with above-average length of stay?,"WITH AvgLOS AS (
+    SELECT 
+        AVG(DATEDIFF(DISCHTIME, ADMITTIME)) AS average_los
+    FROM admissions
+),
+PatientAboveAvgLOS AS (
+    SELECT 
+        a.SUBJECT_ID, 
+        DATEDIFF(a.DISCHTIME, a.ADMITTIME) AS patient_los
+    FROM admissions a
+    JOIN AvgLOS ON DATEDIFF(a.DISCHTIME, a.ADMITTIME) > AvgLOS.average_los
+),
+DiagnosisCounts AS (
+    SELECT 
+        d.ICD9_CODE, 
+        COUNT(*) AS diagnosis_count
+    FROM PatientAboveAvgLOS p
+    JOIN diagnoses_icd d ON p.SUBJECT_ID = d.SUBJECT_ID
+    GROUP BY d.ICD9_CODE
+)
+SELECT 
+    dc.ICD9_CODE, 
+    di.SHORT_TITLE,
+    dc.diagnosis_count
+FROM DiagnosisCounts dc
+JOIN d_icd_diagnoses di ON dc.ICD9_CODE = di.ICD9_CODE
+ORDER BY dc.diagnosis_count DESC
+LIMIT 5;","Here are the top 5 most common diagnoses for patients who stayed longer than the average length of stay:
+
+1. **Hypertension NOS (ICD9 code: 4019)**: 41 patients had this diagnosis.
+2. **Acute kidney failure NOS (ICD9 code: 5849)**: 39 patients had this diagnosis.
+3. **Atrial fibrillation (ICD9 code: 42731)**: 38 patients had this diagnosis.
+4. **Hypothyroidism NOS (ICD9 code: 2449)**: 30 patients had this diagnosis. 
+5. **Urin tract infection NOS (ICD9 code: 5990)**: 28 patients had this diagnosis. 
+
+""NOS"" stands for ""not otherwise specified,"" meaning there is no further detail about the specific type of hypertension, kidney failure, or hypothyroidism."
+What is the average length of stay (rounded to 2 decimal places) for patients admitted after the average admission date?,"SELECT 
+    ROUND(AVG(DATEDIFF(admissions.DISCHTIME, admissions.ADMITTIME)), 2) AS average_los
+FROM 
+    admissions
+WHERE 
+    admissions.ADMITTIME > (SELECT AVG(ADMITTIME) FROM admissions);",The average length of stay for patients admitted after the average admission date is 8.40 days.
+What is the average number of lab events (rounded to the nearest whole number) for patients with more than the average number of prescriptions?,"WITH PatientPrescriptionCount AS (
+  SELECT
+    SUBJECT_ID,
+    COUNT(*) AS PrescriptionCount
+  FROM prescriptions
+  GROUP BY
+    SUBJECT_ID
+  HAVING
+    COUNT(*) > (
+      SELECT
+        AVG(PrescriptionCount)
+      FROM (
+        SELECT
+          SUBJECT_ID,
+          COUNT(*) AS PrescriptionCount
+        FROM prescriptions
+        GROUP BY
+          SUBJECT_ID
+      ) AS AvgPrescriptionCount
+    )
+)
+SELECT
+  ROUND(AVG(LabEventCount)) AS AvgLabEventCount
+FROM (
+  SELECT
+    p.SUBJECT_ID,
+    COUNT(l.ROW_ID) AS LabEventCount
+  FROM PatientPrescriptionCount AS p
+  LEFT JOIN labevents AS l
+    ON p.SUBJECT_ID = l.SUBJECT_ID
+  GROUP BY
+    p.SUBJECT_ID
+) AS LabEventCounts;",The average number of lab events for patients who have more prescriptions than the average patient is 1749.

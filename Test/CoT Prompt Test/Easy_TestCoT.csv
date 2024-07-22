@@ -1,0 +1,247 @@
+NLQ,SQL Query,Answer
+Show the first 5 records from the admissions table.,SELECT * FROM admissions LIMIT 5;,"Here are the first 5 records from the admissions table. Each tuple represents a single admission to the hospital, containing information about the admission such as the time and type of admission, the patient's insurance, language, religion, marital status, and ethnicity, as well as information about their diagnosis and discharge."
+List all distinct admission types.,"SELECT DISTINCT ADMISSION_TYPE
+FROM admissions;","Answer:
+There are 3 distinct admission types in the database: ELECTIVE, EMERGENCY, and URGENT."
+Count the number of patients admitted.,"SELECT COUNT(DISTINCT SUBJECT_ID) AS ""Number of Patients Admitted"" FROM admissions;","Answer:
+There were 100 patients admitted to the hospital."
+How many female patients are there?,"SELECT COUNT(*)
+FROM patients
+WHERE gender = 'F';","Answer:
+There are 55 female patients in the database."
+List all unique admission locations.,SELECT DISTINCT ADMISSION_LOCATION FROM admissions;,"This query returns a list of the different locations that patients were admitted from. There are five unique admission locations in the database: 
+
+1. EMERGENCY ROOM ADMIT
+2. TRANSFER FROM HOSP/EXTRAM
+3. PHYS REFERRAL/NORMAL DELI
+4. CLINIC REFERRAL/PREMATURE
+5. TRANSFER FROM SKILLED NUR"
+Count the number of patients who died during admission.,"SELECT COUNT(DISTINCT SUBJECT_ID)
+FROM admissions
+WHERE DEATHTIME IS NOT NULL;","Answer:
+There were 100 patients who died during their admission to the hospital."
+Show the first 5 records from the patients table with specific columns.,"SELECT ROW_ID, SUBJECT_ID, GENDER, DOB, DOD
+FROM patients
+LIMIT 5;","Here are the first 5 records from the patients table:
+
+| ROW_ID | SUBJECT_ID | GENDER | DOB        | DOD        |
+|--------|------------|---------|------------|------------|
+| 9467   | 10006      | F       | 2094-03-05 | 2165-08-12 |
+| 9472   | 10011      | F       | 2090-06-05 | 2126-08-28 |
+| 9474   | 10013      | F       | 2038-09-03 | 2125-10-07 |
+| 9478   | 10017      | F       | 2075-09-21 | 2152-09-12 |
+| 9479   | 10019      | M       | 2114-06-20 | 2163-05-15 |
+
+This shows the `ROW_ID`, `SUBJECT_ID`, `GENDER`, `DOB` (date of birth), and `DOD` (date of death) for each patient."
+List all diagnoses for subject ID 10006.,"SELECT
+  d.ICD9_CODE
+FROM diagnoses_icd AS d
+JOIN patients AS p
+  ON d.SUBJECT_ID = p.SUBJECT_ID
+WHERE
+  p.SUBJECT_ID = 10006;","Subject ID 10006 had the following diagnoses: 99591, 99662, 5672, 40391, 42731, 4280, 4241, 4240, 2874, 03819, 7850, E8791, V090, 56211, 28529, 25000, V5867, E9342, 41401, 2749, and 3051.  These are likely codes for medical conditions, and you would need to consult a medical professional or a medical coding guide for their specific meanings."
+Find the total number of unique diagnoses.,"SELECT COUNT(DISTINCT ICD9_CODE) AS ""Total Unique Diagnoses"" FROM diagnoses_icd;","Answer:
+There are a total of 581 unique diagnoses recorded in the diagnoses_icd table."
+List unique insurances in the month of June who were admitted.,rating respons,enerating response
+List the admission times for subject ID 41914.,"SELECT ADMITTIME
+FROM admissions
+WHERE SUBJECT_ID = 41914;","Answer: Subject ID 41914 was admitted at 6:13 PM on December 1st, 2145."
+Count the number of patients admitted to the emergency room.,"SELECT COUNT(DISTINCT SUBJECT_ID)
+FROM admissions
+WHERE ADMISSION_LOCATION = 'EMERGENCY ROOM';","Answer:
+There were zero patients admitted to the emergency room according to the admissions table."
+Check for unique CURR_CAREUNIT.,SELECT DISTINCT CURR_CAREUNIT FROM callout;,"There are 5 unique values in the CURR_CAREUNIT column of the callout table. They are: CCU, CSRU, MICU, SICU, and TSICU."
+List all admission types and their respective counts.,"SELECT ADMISSION_TYPE, COUNT(*) AS admission_count
+FROM admissions
+GROUP BY ADMISSION_TYPE;","Answer:
+There are 3 different types of admissions.  There are 8 ELECTIVE, 119 EMERGENCY, and 2 URGENT."
+List subject IDs where the diagnosis contains 'fever'.,"SELECT DISTINCT SUBJECT_ID 
+FROM admissions 
+WHERE DIAGNOSIS LIKE '%fever%';","The query returned a list of 4 subject IDs: 10045, 10117, 40204, and 41976. These subject IDs correspond to patients whose admission diagnosis contains the word ""fever""."
+List the top 5 most common diagnoses.,"SELECT d.SHORT_TITLE, COUNT(*) AS count
+FROM diagnoses_icd AS di
+JOIN d_icd_diagnoses AS d ON di.ICD9_CODE = d.ICD9_CODE
+GROUP BY d.SHORT_TITLE
+ORDER BY count DESC
+LIMIT 5;","The top 5 most common diagnoses are:
+
+1. Hypertension NOS (High blood pressure) - 53 patients
+2. Atrial fibrillation (Irregular heartbeat) - 48 patients
+3. Acute kidney failure NOS (Sudden loss of kidney function) - 45 patients
+4. CHF NOS (Congestive heart failure) - 39 patients
+5. Acute respiratory failure (Lungs unable to provide enough oxygen) - 31 patients"
+What is the current ward ID for subject ID 10089 who was admitted?,"SELECT DISTINCT CURR_WARDID
+FROM callout
+WHERE SUBJECT_ID = 10089;","Answer:
+The provided SQL query returned an empty response, meaning there is no information available about the current ward ID for subject ID 10089 in the 'callout' table. This could mean that:
+
+* **Subject 10089 doesn't have a corresponding entry in the 'callout' table:**  This suggests they might not have had any callouts during their admission.
+* **The data for their callouts is missing or incomplete:** There might be an issue with data entry for this particular subject.
+
+To get a complete picture, we might need to investigate other tables or data sources that track patient location within the hospital."
+List subject IDs where the drug used is 'Bisacodyl'.,rating respons,enerating response
+List subject IDs who were admitted in the year 2118.,rating respons,enerating response
+Count the number of patients in ward ID 50.,"SELECT COUNT(DISTINCT t1.SUBJECT_ID)
+FROM admissions AS t1
+INNER JOIN transfers AS t2
+  ON t1.HADM_ID = t2.HADM_ID
+WHERE
+  t2.CURR_WARDID = 50;",There are 16 patients admitted to ward ID 50.
+Find the earliest admission time in the admissions table.,"SELECT MIN(ADMITTIME)
+FROM admissions;","Answer:
+The earliest admission time in the admissions table is August 29, 2102, at 7:15 AM."
+Find the total amount rounded to 2 decimal places for subject ID 118999.,"SELECT ROUND(SUM(TOTALAMOUNT), 2)
+FROM inputevents_mv
+WHERE SUBJECT_ID = 118999;",The total amount for subject ID 118999 is 70.00.
+List the subject ID and the maximum amount (rounded to 2 decimal places) grouped by subject ID  ordered by max amount descending  limited to top 3.,"SELECT SUBJECT_ID, ROUND(MAX(AMOUNT), 2) AS max_amount
+FROM inputevents_cv
+GROUP BY SUBJECT_ID
+ORDER BY max_amount DESC
+LIMIT 3;","The query returns the top 3 patients (identified by 'SUBJECT\_ID') who received the highest maximum amount of medication ('AMOUNT') during their hospital stay. 
+
+Here's what the results tell us:
+
+* **Patient 10035:** Received a maximum of 60000.00 units of a medication.
+* **Patient 10126:** Received a maximum of 6500.00 units of a medication.
+* **Patient 10069:** Received a maximum of 5000.00 units of a medication. 
+
+It's important to note that we don't know the specific medication(s) involved or the context of these dosages without further analysis."
+List subject IDs admitted before January 1 2118  limited to 5 records.,rating respons,enerating response
+List DRG codes with descriptions containing 'DENTAL'.,"SELECT
+  DRG_CODE,
+  DESCRIPTION
+FROM drgcodes
+WHERE
+  DESCRIPTION LIKE '%DENTAL%';","The query returned one DRG code related to dental procedures. 
+
+* **DRG Code 185**,  is described as ""DENTAL & ORAL DIS EXCEPT EXTRACTIONS & RESTORATIONS AGE >17"". This code covers dental and oral health issues for patients over 17 years old, excluding extractions and restorations."
+Find the most recent admission time in the admissions table.,"SELECT MAX(ADMITTIME)
+FROM admissions;","Answer:
+The most recent admission time in the admissions table is October 3, 2202, at 1:45 AM."
+Find the subject ID and ICUSTAY_ID with the maximum value from procedure events.,"SELECT SUBJECT_ID, ICUSTAY_ID, MAX(VALUE) AS MAX_VALUE
+FROM procedureevents_mv
+GROUP BY SUBJECT_ID, ICUSTAY_ID;","The query returned a list of subject IDs and ICUSTAY_IDs with the maximum value for each combination. 
+
+For example:
+* Subject ID 42367 with ICUSTAY_ID 250305 had a maximum value of 29275.00 in the procedure events.
+* Subject ID 43881 with ICUSTAY_ID 214180 had a maximum value of 2624.00.
+
+And so on for all the other pairs. This list essentially shows the highest value recorded in the 'procedureevents_mv' table for each unique combination of a subject and their specific ICU stay (ICUSTAY_ID)."
+List distinct subject IDs from procedure events where ORDERCATEGORYNAME contains 'Imaging'  limited to 5 records.,"SELECT DISTINCT SUBJECT_ID 
+FROM procedureevents_mv
+WHERE ORDERCATEGORYNAME LIKE '%Imaging%'
+LIMIT 5;","This query returned a list of 5 patient IDs (42367, 40456, 43881, 40304, 42281). These patients all had at least one procedure event where the order category name included the word ""Imaging"". This likely means these patients underwent some type of medical imaging procedure, such as an X-ray, MRI, or CT scan."
+List distinct ORDERCATEGORYNAME from procedure events.,"SELECT DISTINCT ORDERCATEGORYNAME 
+FROM procedureevents_mv;","This query returns a list of all the unique order category names found in the ""procedureevents_mv"" table. 
+
+The table stores information about various medical procedures, and each procedure is categorized for easier reference. The results show us there are 11 unique categories of procedures:
+
+* Communication
+* Continuous Procedures
+* CRRT Filter Change
+* Dialysis
+* Imaging
+* Intubation/Extubation
+* Invasive Lines
+* Peripheral Lines
+* Procedures
+* Significant Events
+* Ventilation"
+Count the number of unique admission locations.,"SELECT COUNT(DISTINCT Admission_Location) AS ""Unique Admission Locations"" FROM admissions;","Answer:
+There are 5 unique admission locations in the admissions table."
+List distinct generic drug names from prescriptions where FORMULARY_DRUG_CD contains 'nacl'.,rating respons,enerating response
+List the top 3 most frequent admission locations.,"SELECT ADMISSION_LOCATION, COUNT(*) AS AdmissionCount
+FROM admissions
+GROUP BY ADMISSION_LOCATION
+ORDER BY AdmissionCount DESC
+LIMIT 3;","The top three admission locations are: 
+1. EMERGENCY ROOM ADMIT: with 81 admissions.
+2. TRANSFER FROM HOSP/EXTRAM: with 25 admissions.
+3. CLINIC REFERRAL/PREMATURE: with 12 admissions."
+Count the number of patients admitted in the month of December.,rating respons,enerating response
+List the subject IDs and diagnoses for patients who are of white ethnicity and single marital status.,"SELECT DISTINCT
+    a.SUBJECT_ID,
+    a.DIAGNOSIS
+FROM admissions AS a
+JOIN patients AS p
+    ON a.SUBJECT_ID = p.SUBJECT_ID
+WHERE
+    p.SUBJECT_ID IN (SELECT SUBJECT_ID FROM admissions WHERE ETHNICITY = 'white')
+    AND p.SUBJECT_ID IN (SELECT SUBJECT_ID FROM admissions WHERE MARITAL_STATUS = 'SINGLE');","The query returns a list of patients who are both White and Single. There are 18 patients that match this criteria. For each patient, their Subject ID and their Diagnosis is listed. For example, the patient with Subject ID 10046 was diagnosed with Brain Metastases. Some patients have multiple diagnoses, such as patient 40124 who was diagnosed with Shortness of Breath and Pneumonia."
+What is the current care unit for subject ID 10029 from the callout table?,SELECT CURR_CAREUNIT FROM callout WHERE SUBJECT_ID = 10029;,"Answer:
+The current care unit for subject ID 10029, according to the callout table, is the SICU (Surgical Intensive Care Unit)."
+How many records are there in the callout table where the current care unit is 'MICU'?,"SELECT COUNT(*)
+FROM callout
+WHERE CURR_CAREUNIT = 'MICU';","Answer:
+There are 41 records in the callout table where the current care unit is 'MICU'."
+List the subject IDs from the cptevents table where the section header is 'Cardiovascular'.,"SELECT DISTINCT SUBJECT_ID
+FROM cptevents
+WHERE SECTIONHEADER = 'Cardiovascular';","This query returns a list of distinct (unique) patient IDs from the 'cptevents' table. These patients have at least one entry in the 'cptevents' table where the 'sectionheader' is 'Cardiovascular'. 
+
+In simpler terms, the query found all patients who underwent a cardiovascular procedure. The table stores information about various medical procedures, and this query specifically looked for those related to the cardiovascular system."
+List all distinct section headers from the cptevents table for subject ID 10117.,SELECT DISTINCT SectionHeader FROM cptevents WHERE SUBJECT_ID = 10117;,"The distinct section headers from the `cptevents` table for subject ID 10117 are:
+
+* Consultations
+* Hospital inpatient services
+* Dialysis
+* Medicine"
+What is the long title of the ICD-9 code '01720' in the d_icd_diagnoses table?,"SELECT LONG_TITLE 
+FROM d_icd_diagnoses 
+WHERE ICD9_CODE = '01720';","The ICD-9 code '01720' corresponds to the diagnosis ""Tuberculosis of peripheral lymph nodes, unspecified""."
+What is the long title of the ICD-9 code '0119' in the d_icd_procedures table?,"SELECT LONG_TITLE
+FROM d_icd_procedures
+WHERE ICD9_CODE = '0119';","Answer:
+The long title for the ICD-9 code '0119' is 'Other diagnostic procedures on skull'."
+How many items in the d_items table have labels that contain the word 'dialysis'?,"SELECT 
+    COUNT(*) 
+FROM 
+    d_items
+WHERE 
+    LABEL LIKE '%dialysis%';","Answer:
+There are 99 items in the d_items table that have labels containing the word ""dialysis""."
+List the item IDs from the d_labitems table where the category contains 'Chemistry' and the label contains 'T4'.,"SELECT
+  itemid
+FROM d_labitems
+WHERE
+  category LIKE '%Chemistry%' AND label LIKE '%T4%';","The item IDs are 50896, 50994, and 50995. These IDs correspond to lab items in the category 'Chemistry' and their labels contain 'T4', such as a T4 hormone level test."
+"List the sequence numbers and ICD-9 codes for subject ID 10083 from the diagnoses_icd table, limited to the first 3 records.","SELECT
+  SEQ_NUM,
+  ICD9_CODE
+FROM diagnoses_icd
+WHERE
+  SUBJECT_ID = 10083
+LIMIT 3;","This shows the first three diagnoses for patient 10083, according to the diagnoses_icd table. 
+
+* **SEQ_NUM** represents the order of diagnoses received.
+* **ICD9_CODE** is a code representing the specific diagnosis.
+
+Here's the breakdown:
+
+* **1st diagnosis (SEQ_NUM 1):** ICD9 code 27739 
+* **2nd diagnosis (SEQ_NUM 2):** ICD9 code 2554
+* **3rd diagnosis (SEQ_NUM 3):** ICD9 code 99662"
+List all distinct subject IDs from the diagnoses_icd table where the sequence number is greater than 25.,"SELECT DISTINCT SUBJECT_ID 
+FROM diagnoses_icd
+WHERE SEQ_NUM > 25;","There are 4 distinct Subject IDs from the diagnoses_icd table where the sequence number is greater than 25. They are: 10045, 40310, 41914, and 41976. 
+
+In simpler terms, you asked for a list of unique patient IDs who have a sequence number higher than 25 in a table containing diagnosis information. The results returned 4 patient IDs that meet this criteria."
+How many records are there in the drgcodes table where the DRG type is 'APR'?,"SELECT COUNT(*)
+FROM drgcodes
+WHERE drg_type = 'APR';","Answer:
+There are 168 records in the drgcodes table where the DRG type is 'APR'."
+List all distinct first care units from the icustays table.,SELECT DISTINCT FIRST_CAREUNIT FROM icustays;,"The distinct first care units from the icustays table are: CCU, CSRU, MICU, SICU, and TSICU."
+What is the average length of stay (rounded to 2 decimal places) for patients in the first care unit 'CCU' in the icustays table?,"SELECT 
+    ROUND(AVG(LOS), 2) AS average_los
+FROM 
+    icustays
+WHERE 
+    FIRST_CAREUNIT = 'CCU';",The average length of stay for patients in the CCU (Cardiac Care Unit) is 5.75 days.
+What is the total amount (rounded to 2 decimal places) from the inputevents_cv table where the stop method contains 'Oral'?,"SELECT ROUND(SUM(AMOUNT), 2) AS ""Total Amount""
+FROM inputevents_cv
+WHERE ORIGINALROUTE LIKE '%Oral%';","The query returned an empty result, denoted by ""(None,)"".  This means there are no entries in the `inputevents_cv` table where the `ORIGINALROUTE` field contains the word ""Oral"". In simpler terms, there's no data matching your request about the total amount of things given by mouth."
+What is the total amount (rounded to 2 decimal places) for subject ID 10042 from the inputevents_cv table?,"SELECT ROUND(SUM(AMOUNT), 2) AS ""Total Amount""
+FROM inputevents_cv
+WHERE SUBJECT_ID = 10042;","The total amount, rounded to two decimal places, for subject ID 10042 from the inputevents_cv table is 118610.72."
+What is the total amount (rounded to 2 decimal places) from the inputevents_mv table where the secondary order category name contains 'insulin'?,"SELECT ROUND(SUM(TOTALAMOUNT), 2)
+FROM inputevents_mv
+WHERE SECONDARYORDERCATEGORYNAME LIKE '%Insulin%';","The total amount from the `inputevents_mv` table, where the secondary order category name includes ""insulin"", is approximately $32,760.00. This likely represents the total amount of insulin administered to patients, though without further context on the units of measurement in the `TOTALAMOUNT` column, it's impossible to say for sure."

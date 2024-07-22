@@ -1,0 +1,1069 @@
+NLQ,Unnamed: 1,SQL Query,Answer
+"For each care unit, what is the mortality rate of patients who had at least one procedure performed during their stay, considering only patients who stayed in the ICU for more than 48 hours?",,"WITH PatientICUInfo AS (
+  SELECT 
+    p.SUBJECT_ID,
+    i.ICUSTAY_ID,
+    i.FIRST_CAREUNIT,
+    CASE WHEN i.LOS > 48 THEN 1 ELSE 0 END AS StayedMoreThan48Hours,
+    CASE WHEN p.EXPIRE_FLAG = 1 THEN 1 ELSE 0 END AS MortalityFlag
+  FROM patients p
+  JOIN icustays i ON p.SUBJECT_ID = i.SUBJECT_ID
+),
+PatientProcedureCounts AS (
+  SELECT 
+    pp.SUBJECT_ID,
+    pp.ICUSTAY_ID,
+    CASE WHEN COUNT(DISTINCT pmv.ITEMID) > 0 THEN 1 ELSE 0 END AS HadProcedure
+  FROM PatientICUInfo pp
+  LEFT JOIN procedureevents_mv pmv ON pp.SUBJECT_ID = pmv.SUBJECT_ID AND pp.ICUSTAY_ID = pmv.ICUSTAY_ID
+  GROUP BY 
+    pp.SUBJECT_ID,
+    pp.ICUSTAY_ID
+)
+SELECT 
+    pii.FIRST_CAREUNIT,
+    SUM(pii.MortalityFlag * ppc.HadProcedure) * 1.0 / SUM(ppc.HadProcedure) AS MortalityRate
+FROM PatientICUInfo pii
+JOIN PatientProcedureCounts ppc ON pii.SUBJECT_ID = ppc.SUBJECT_ID AND pii.ICUSTAY_ID = ppc.ICUSTAY_ID
+WHERE pii.StayedMoreThan48Hours = 1
+GROUP BY 
+    pii.FIRST_CAREUNIT;","The query returns the mortality rate of patients who stayed in the ICU for more than 48 hours and had at least one procedure performed, broken down by the care unit they were initially admitted to. 
+
+Unfortunately, the SQL response is empty, meaning there is no data available to calculate the mortality rate for the given criteria. This could be due to various reasons, such as:
+
+* **No matching records:** There might be no patients who meet both conditions of staying in the ICU for more than 48 hours and having at least one procedure. 
+* **Missing data:** There might be incomplete data in the tables, such as missing procedure information for some patients.
+
+To get a clearer picture, we would need to investigate the data further or adjust the query to potentially relax the criteria."
+"What are the top 5 most common pairs of procedures (by ICD9 code) performed on the same patient during a single hospital admission, along with the count of occurrences?",,"SELECT p1.ICD9_CODE AS procedure1, 
+       p2.ICD9_CODE AS procedure2,
+       COUNT(*) AS occurrence_count
+FROM procedures_icd p1
+INNER JOIN procedures_icd p2 
+ON p1.HADM_ID = p2.HADM_ID AND p1.ICD9_CODE < p2.ICD9_CODE
+GROUP BY procedure1, procedure2
+ORDER BY occurrence_count DESC
+LIMIT 5;","This SQL query analyzed patient records to determine the 5 most common pairs of procedures performed during the same hospital admission. 
+
+Here are the top 5 most frequent procedure pairs:
+
+1. Procedures with ICD9 codes '3893' and '966' were performed together 22 times.
+2. Procedures with ICD9 codes '3893' and '9672' were performed together 18 times.
+3. Procedures with ICD9 codes '3893' and '9904' were performed together 17 times.
+4. Procedures with ICD9 codes '3893' and '9604' were performed together 16 times.
+5. Procedures with ICD9 codes '966' and '9672' were performed together 12 times."
+What are the top 5 most common diagnoses for patients over 65 years old?,,"SELECT DIAGNOSIS, COUNT(*) AS DIAGNOSIS_COUNT
+FROM admissions
+GROUP BY DIAGNOSIS
+ORDER BY DIAGNOSIS_COUNT DESC
+LIMIT 5;","This response shows the top 5 most common diagnoses in the database, but it doesn't filter by age as requested.  It tells us that SEPSIS is the most common diagnosis overall with 10 instances, followed by PNEUMONIA with 8 instances and so on.  To get the top diagnoses for patients over 65, we'd need additional information about patient age, which isn't included in the 'admissions' table."
+What is the average number of chart events per ICU stay for each care unit?,,"SELECT t.curr_careunit, AVG(ce.events_per_stay) AS average_events_per_stay
+FROM transfers t
+JOIN (
+    SELECT hadm_id, icustay_id, COUNT(*) AS events_per_stay
+    FROM chartevents
+    GROUP BY hadm_id, icustay_id
+) ce ON t.hadm_id = ce.hadm_id AND t.icustay_id = ce.icustay_id
+GROUP BY t.curr_careunit;","The query results show the average number of chart events per stay for patients in each care unit. Here's what we found:
+
+* **MICU (Medical Intensive Care Unit):** An average of 5617.07 chart events per stay.
+* **CCU (Cardiac Care Unit):** An average of 5880.76 chart events per stay.
+* **SICU (Surgical Intensive Care Unit):** An average of 8916.88 chart events per stay.
+* **CSRU (Cardiothoracic Surgical Recovery Unit):** An average of 4362.85 chart events per stay.
+* **TSICU (Trauma Surgical Intensive Care Unit):** An average of 4493.75 chart events per stay. 
+
+This means that, on average, patients in the SICU have the highest number of chart events recorded during their stay, while patients in the CSRU have the fewest."
+What are the top 5 procedures performed on patients admitted for pneumonia?,,rating respons,enerating response
+What are the top 3 ICU units with the highest mortality rate for patients over 65?,,"WITH icu_mortality AS (
+  SELECT 
+    i.FIRST_CAREUNIT,
+    SUM(CASE WHEN p.DOD IS NOT NULL THEN 1 ELSE 0 END) AS deaths,
+    COUNT(*) AS total_patients,
+    (SUM(CASE WHEN p.DOD IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*)) * 100 AS mortality_rate
+  FROM icustays i
+  JOIN patients p ON i.SUBJECT_ID = p.SUBJECT_ID
+  WHERE YEAR(p.DOB) < YEAR(CURDATE()) - 65 -- Filter for patients over 65
+  GROUP BY i.FIRST_CAREUNIT
+)
+SELECT 
+  FIRST_CAREUNIT, 
+  deaths, 
+  total_patients, 
+  mortality_rate
+FROM icu_mortality
+ORDER BY mortality_rate DESC
+LIMIT 3;","The top 3 ICU units with the highest mortality rate for patients over 65 are:
+
+1. **SICU (Surgical Intensive Care Unit):** 1 out of 1 patient (100% mortality rate)
+2. **MICU (Medical Intensive Care Unit):** 6 out of 6 patients (100% mortality rate)
+3. **TSICU (Trauma Surgical Intensive Care Unit):** 1 out of 1 patient (100% mortality rate) 
+
+It's important to note that these results show a 100% mortality rate in the top 3 units. This is likely due to a very small sample size of patients, making the data less reliable for drawing conclusions about the overall mortality rate of these units."
+"What are the top 3 most prescribed medications for patients diagnosed with heart failure, along with the count of prescriptions?",,"SELECT p.DRUG_NAME_GENERIC, COUNT(*) AS prescription_count
+FROM prescriptions p
+JOIN admissions a ON p.HADM_ID = a.HADM_ID
+WHERE a.DIAGNOSIS = 'HEART FAILURE'
+GROUP BY p.DRUG_NAME_GENERIC
+ORDER BY prescription_count DESC
+LIMIT 3;","This query returns the top 3 most prescribed medications for patients diagnosed with heart failure. 
+
+The query does this by:
+
+1. **Joining tables:** It connects the ""prescriptions"" table to the ""admissions"" table using the common column ""HADM_ID"". This way, we can look at prescriptions in the context of patient admissions and diagnoses.
+2. **Filtering for heart failure:** It focuses specifically on admissions where the diagnosis is 'HEART FAILURE'.
+3. **Grouping by medication:** It groups the results by the generic name of the prescribed drug.
+4. **Counting prescriptions:** For each group (i.e., each medication), it counts how many times it was prescribed.
+5. **Ordering by prescription count:** It orders the results in descending order of the prescription count, so the most prescribed medication appears first.
+6. **Limiting to top 3:** It only returns the top 3 results, giving us the three most common medications.
+
+To have a complete answer, please provide the response from the SQL query. The response will list the top 3 most prescribed medications and how many times each one was prescribed for heart failure patients."
+"What are the top 3 care units with the highest ratio of male to female patients, considering only stays longer than 2 days?",,"WITH PatientGender AS (
+  SELECT DISTINCT
+    i.hadm_id,
+    p.gender
+  FROM icustays AS i
+  JOIN patients AS p
+    ON i.subject_id = p.subject_id
+  WHERE
+    i.los > 2
+), CareUnitGenderCount AS (
+  SELECT
+    t.curr_careunit,
+    pg.gender,
+    COUNT(*) AS gender_count
+  FROM PatientGender AS pg
+  JOIN transfers AS t
+    ON pg.hadm_id = t.hadm_id
+  GROUP BY
+    t.curr_careunit,
+    pg.gender
+)
+SELECT
+  cugc.curr_careunit,
+  (
+    SUM(CASE WHEN cugc.gender = 'M' THEN cugc.gender_count ELSE 0 END) / SUM(CASE WHEN cugc.gender = 'F' THEN cugc.gender_count ELSE 1 END)
+  ) AS male_female_ratio
+FROM CareUnitGenderCount AS cugc
+GROUP BY
+  cugc.curr_careunit
+ORDER BY
+  male_female_ratio DESC
+LIMIT 3;","The top 3 care units with the highest ratio of male to female patients are:
+
+1. **MICU**: This unit has 1.45 males for every 1 female patient, indicating a higher proportion of male patients. 
+2. **Unknown**: This unit has 0.74 males for every 1 female patient. The specific unit name is not available in the data.
+3. **CCU**: This unit has 0.69 males for every 1 female patient, indicating a relatively balanced gender distribution. 
+
+This analysis only considered patients who stayed in the ICU for longer than 2 days."
+"Average length of ICU stay by diagnosis category, result limit to 3",,rating respons,enerating response
+"Average number of procedures per admission by insurance type, result limit to 3",,"SELECT
+  a.INSURANCE,
+  AVG(CASE WHEN p.HADM_ID IS NOT NULL THEN 1 ELSE 0 END) AS avg_procedures
+FROM admissions AS a
+LEFT JOIN procedures_icd AS p
+  ON a.HADM_ID = p.HADM_ID
+GROUP BY
+  a.INSURANCE
+LIMIT 3;","The average number of procedures per admission varies slightly among patients with different insurance types. Here are the results for three insurance types:
+
+* **Medicare:** Patients with Medicare had an average of 0.962 procedures per admission.
+* **Private:** Patients with Private insurance had an average of 0.9921 procedures per admission.
+* **Medicaid:** Patients with Medicaid had an average of 1.0000 procedures per admission."
+"Total chart events and unique patients by caregiver role, result limit to 3",,"SELECT cg.label, COUNT(*) AS total_chartevents, COUNT(DISTINCT ce.subject_id) AS unique_patients
+FROM caregivers cg
+JOIN chartevents ce ON cg.cgid = ce.cgid
+GROUP BY cg.label
+LIMIT 3;","This result shows the total number of chart events and the number of unique patients seen by each caregiver role for the top 3 roles. 
+
+* **Co-Ord:** This caregiver role was associated with 10 chart events and 1 unique patient. 
+* **Co-Wkr:** This caregiver role was associated with 3 chart events and 2 unique patients.
+* **Co-Wor:** This caregiver role was associated with 51 chart events and 9 unique patients."
+"Total prescription duration and unique drug count by diagnosis, result limit to 3",,"WITH PrescriptionDuration AS (
+  SELECT
+    p.SUBJECT_ID,
+    p.DRUG_NAME_GENERIC,
+    DATEDIFF(p.ENDDATE, p.STARTDATE) AS duration,
+    a.DIAGNOSIS
+  FROM prescriptions AS p
+  JOIN admissions AS a
+    ON p.HADM_ID = a.HADM_ID
+)
+SELECT
+  DIAGNOSIS,
+  SUM(duration) AS total_duration,
+  COUNT(DISTINCT DRUG_NAME_GENERIC) AS unique_drug_count
+FROM PrescriptionDuration
+GROUP BY
+  DIAGNOSIS
+LIMIT 3;","The query returns the total prescription duration and the number of unique drugs prescribed for each diagnosis, limited to the top 3 diagnoses. 
+
+Here's a breakdown of the results:
+
+* **MITRAL REGURGITATION;CORONARY ARTERY DISEASECORONARY ARTERY BYPASS GRAFT WITH MVR  ? MITRAL VALVE REPLACEMENT /SDA:** Patients diagnosed with this had a total prescription duration of 283 days across 36 unique drugs. 
+* **ABDOMINAL PAIN:** Patients with this diagnosis had a total prescription duration of 62 days across 13 unique drugs.
+* **ACUTE CHOLANGITIS:** Patients diagnosed with this had a total prescription duration of 101 days across 24 unique drugs."
+"What are the 3 most common combinations of primary and secondary diagnoses, along with their average length of stay?",,rating respons,enerating response
+Which 3 medications have the highest ratio of ICU to non-ICU prescriptions?,,"WITH ICUPrescriptions AS (
+  SELECT 
+    p.DRUG, 
+    COUNT(*) AS ICUCount
+  FROM prescriptions p
+  WHERE 
+    p.ICUSTAY_ID IS NOT NULL
+  GROUP BY 
+    p.DRUG
+), 
+TotalPrescriptions AS (
+  SELECT 
+    DRUG, 
+    COUNT(*) AS TotalCount
+  FROM prescriptions
+  GROUP BY 
+    DRUG
+)
+SELECT 
+  tp.DRUG, 
+  COALESCE(ip.ICUCount, 0) AS ICUCount, /* Use COALESCE to handle drugs with no ICU prescriptions */
+  tp.TotalCount, 
+  COALESCE(ip.ICUCount, 0) / tp.TotalCount AS  ICURatio
+FROM TotalPrescriptions tp
+LEFT JOIN ICUPrescriptions ip ON tp.DRUG = ip.DRUG
+ORDER BY 
+  ICURatio DESC
+LIMIT 
+  3;","The top 3 medications with the highest ratio of being prescribed in the ICU are: *NF* Ertapenem Sodium, *NF* Rasburicase, and 0.45% Sodium Chloride. All three medications have a 100% chance of being prescribed in the ICU, meaning every prescription for these medications was made for a patient in the ICU."
+Which 3 pairs of medications are most frequently prescribed together within the same ICU stay?,,"WITH PrescriptionPairs AS (
+  SELECT
+    p1.HADM_ID,
+    p1.ICUSTAY_ID,
+    p1.DRUG AS drug1,
+    p2.DRUG AS drug2
+  FROM prescriptions AS p1
+  JOIN prescriptions AS p2
+    ON p1.HADM_ID = p2.HADM_ID
+    AND p1.ICUSTAY_ID = p2.ICUSTAY_ID
+    AND p1.DRUG < p2.DRUG /* Avoid duplicates and self-pairs */
+)
+SELECT
+  drug1,
+  drug2,
+  COUNT(*) AS frequency
+FROM PrescriptionPairs
+GROUP BY
+  drug1,
+  drug2
+ORDER BY
+  frequency DESC
+LIMIT 3;","The top 3 pairs of medications most frequently prescribed together within the same ICU stay are:
+
+1. **D5W and Potassium Chloride:** This combination was prescribed together 3833 times. 
+2. **Furosemide and Potassium Chloride:** This combination was prescribed together 3768 times.
+3. **0.9% Sodium Chloride and 5% Dextrose:** This combination was prescribed together 3593 times."
+What are the top 3 services with the highest average number of unique caregivers involved per patient stay?,,"WITH ServiceCaregiverCount AS (
+  SELECT
+    s.curr_service,
+    COUNT(DISTINCT c.cgid) AS caregiver_count,
+    s.hadm_id
+  FROM services s
+  JOIN chartevents c
+    ON s.hadm_id = c.hadm_id
+  GROUP BY
+    s.curr_service,
+    s.hadm_id
+)
+SELECT
+  curr_service,
+  AVG(caregiver_count) AS avg_caregivers
+FROM ServiceCaregiverCount
+GROUP BY
+  curr_service
+ORDER BY
+  avg_caregivers DESC
+LIMIT 3;","The top 3 services with the highest average number of unique caregivers involved per patient stay are:
+
+1. **NSURG:** with an average of 22.6 caregivers.
+2. **SURG:** with an average of 20.3 caregivers.
+3. **CSURG:** with an average of 18.4 caregivers."
+"Find information for the first 3 patients who unfortunately passed away in the hospital (DOD_HOSP is not null). List their subject ID, date of death, and the total number of medications they were prescribed during their stay.",,"SELECT
+  p.SUBJECT_ID,
+  p.DOD_HOSP,
+  COUNT(DISTINCT pr.DRUG) AS TotalMedications
+FROM patients AS p
+JOIN prescriptions AS pr
+  ON p.SUBJECT_ID = pr.SUBJECT_ID
+WHERE
+  NOT p.DOD_HOSP IS NULL
+GROUP BY
+  p.SUBJECT_ID,
+  p.DOD_HOSP
+LIMIT 3;","Here is the information for the first 3 patients who died in the hospital:
+
+* **Patient 10006:** Passed away on August 12, 2165. They were prescribed 34 different medications during their stay.
+* **Patient 10013:** Passed away on October 7, 2125. They were prescribed 20 different medications during their stay.
+* **Patient 10017:** The date of death was not recorded, but they were prescribed 52 different medications during their stay."
+"Find the first 3 patients who received medications for diabetes (DRUG_NAME_GENERIC like '%metformin%' or '%glyburide%') during their stay. Additionally, show their subject ID, medication name, and the date the medication was first started.",,"SELECT DISTINCT
+    p.SUBJECT_ID,
+    p.DRUG_NAME_GENERIC,
+    MIN(p.STARTDATE) AS first_start_date
+FROM prescriptions p
+WHERE 
+    (
+        p.DRUG_NAME_GENERIC LIKE '%metformin%' OR 
+        p.DRUG_NAME_GENERIC LIKE '%glyburide%'
+    )
+GROUP BY 
+    p.SUBJECT_ID, 
+    p.DRUG_NAME_GENERIC
+LIMIT 3;","The query returned a list of 3 patients who were prescribed diabetes medications. The table below shows each patient's ID, the medication they were prescribed, and the date they first received the medication.
+
+| Patient ID | Medication | First Prescribed Date |
+|---|---|---|
+| 10104 | Metformin | August 25, 2120 |
+| 10106 | Metformin | September 18, 2161 |
+| 10132 | Glyburide | August 24, 2123 |"
+"Find the first 3 elderly patients (aged 65 or older) who were diagnosed with chronic obstructive pulmonary disease (COPD, ICD9 code: '496') and track their hospital outcome (whether they expired in the hospital).",,"SELECT DISTINCT
+    p.SUBJECT_ID,
+    p.DOB,
+    a.HOSPITAL_EXPIRE_FLAG
+FROM
+    patients p
+JOIN
+    admissions a ON p.SUBJECT_ID = a.SUBJECT_ID
+JOIN
+    diagnoses_icd d ON a.HADM_ID = d.HADM_ID
+WHERE
+    d.ICD9_CODE = '496' 
+    AND TIMESTAMPDIFF(YEAR, p.DOB, a.ADMITTIME) >= 65
+LIMIT 3;","Here are the details of the first 3 elderly patients diagnosed with COPD:
+
+* **Patient 10111:** Born on January 16th, 2097. Sadly, this patient expired in the hospital. 
+* **Patient 40124:** Born on July 5th, 2063. This patient survived their hospital stay and was discharged.
+* **Patient 40277:** Born on October 11th, 2070.  This patient also survived their hospital stay and was discharged."
+"Identify the most common procedures and their associated diagnoses for patients over 70, listing the top 3 procedures and the count of each.",,"SELECT
+    p.ICD9_CODE AS Procedure_Code,
+    d.SHORT_TITLE AS Procedure_Name,
+    COUNT(DISTINCT p.HADM_ID) AS Procedure_Count
+FROM
+    procedures_icd p
+JOIN
+    d_icd_procedures d ON p.ICD9_CODE = d.ICD9_CODE
+GROUP BY
+    Procedure_Code, Procedure_Name
+ORDER BY
+    Procedure_Count DESC
+LIMIT 3;","While the provided SQL query does identify the top 3 most common procedures and their counts, it doesn't address the age filter (patients over 70) from your request. 
+
+Here's a breakdown of the results:
+
+* **Venous cath NEC (Procedure Code: 3893):** This procedure was performed 50 times, making it the most common. 
+* **Entral infus nutrit sub (Procedure Code: 966):** This procedure was the second most common, performed 31 times.
+* **Packed cell transfusion (Procedure Code: 9904):** This procedure was performed 30 times.
+
+To get the information you're looking for, we need to modify the query to include patient age."
+What are the top 3 most common diagnoses for each age group?,,"WITH AgeGroupDiagnoses AS (
+  SELECT
+    a.SUBJECT_ID,
+    d.ICD9_CODE,
+    CASE
+      WHEN YEAR(a.ADMITTIME) - YEAR(p.DOB) BETWEEN 0 AND 18
+      THEN '0-18'
+      WHEN YEAR(a.ADMITTIME) - YEAR(p.DOB) BETWEEN 19 AND 35
+      THEN '19-35'
+      WHEN YEAR(a.ADMITTIME) - YEAR(p.DOB) BETWEEN 36 AND 55
+      THEN '36-55'
+      WHEN YEAR(a.ADMITTIME) - YEAR(p.DOB) BETWEEN 56 AND 75
+      THEN '56-75'
+      ELSE '75+'
+    END AS AgeGroup
+  FROM admissions AS a
+  JOIN patients AS p
+    ON a.SUBJECT_ID = p.SUBJECT_ID
+  JOIN diagnoses_icd AS d
+    ON a.HADM_ID = d.HADM_ID
+), RankedDiagnoses AS (
+  SELECT
+    ICD9_CODE,
+    AgeGroup,
+    COUNT(*) AS DiagnosisCount,
+    ROW_NUMBER() OVER (PARTITION BY AgeGroup ORDER BY COUNT(*) DESC) AS rn
+  FROM AgeGroupDiagnoses
+  GROUP BY
+    ICD9_CODE,
+    AgeGroup
+)
+SELECT
+  ICD9_CODE,
+  AgeGroup,
+  DiagnosisCount
+FROM RankedDiagnoses
+WHERE
+  rn <= 3
+ORDER BY
+  AgeGroup,
+  rn;","This table shows the top 3 most common diagnoses for each patient age group:
+
+**0-18 years old:**
+* 8020: This diagnosis code occurred once within this age group. 
+* 42789: This diagnosis code occurred once within this age group.
+* 80601: This diagnosis code occurred once within this age group.
+
+**19-35 years old:**
+* 2851: This diagnosis code occurred twice within this age group.
+* 29633: This diagnosis code occurred once within this age group.
+* 4271: This diagnosis code occurred once within this age group. 
+
+**36-55 years old:**
+* 51881: This diagnosis code occurred 9 times within this age group.
+* 4019: This diagnosis code occurred 6 times within this age group. 
+* 2762: This diagnosis code occurred 5 times within this age group.
+
+**56-75 years old:**
+* 4019: This diagnosis code occurred 22 times within this age group.
+* 42731: This diagnosis code occurred 19 times within this age group.
+* 5849: This diagnosis code occurred 18 times within this age group. 
+
+**75+ years old:**
+* 4280: This diagnosis code occurred 30 times within this age group. 
+* 42731: This diagnosis code occurred 28 times within this age group. 
+* 4019: This diagnosis code occurred 25 times within this age group. 
+
+It's important to note that without knowing what each of these diagnosis codes represent, we can only understand how often they occurred within each age group, but not their significance."
+What are the top 3 admission types with the highest average ICU costs?,,,"Answer:
+The provided SQL query is empty, so I cannot give you the top 3 admission types with the highest average ICU costs. To answer your question, I need a query that can calculate the average ICU cost for each admission type and then sort the results to find the highest averages. 
+
+For example, the query might need to join the `admissions` table with tables containing information about costs, group the data by `ADMISSION_TYPE`, calculate the average cost for each group, and then order the results."
+Which 3 patients have the highest number of ICU readmissions?,,"WITH Readmissions AS (
+    SELECT 
+        SUBJECT_ID, 
+        COUNT(*) AS ReadmissionCount
+    FROM icustays
+    GROUP BY SUBJECT_ID
+    HAVING COUNT(*) > 1 
+)
+SELECT 
+    r.SUBJECT_ID, 
+    ReadmissionCount
+FROM Readmissions r
+ORDER BY ReadmissionCount DESC
+LIMIT 3;","The top 3 patients with the most ICU readmissions are:
+
+* Patient 41976: 15 readmissions
+* Patient 10124: 4 readmissions
+* Patient 44083: 3 readmissions"
+Which top 3 patient demographics (gender and age group) show a correlation with specific diagnoses and their treatment protocols?,,rating respons,enerating response
+What are the top 3 most frequent transfer patterns between wards and their associated patient outcomes in terms of ICU readmissions?,,"WITH TransferPatterns AS (
+  SELECT
+    t1.PREV_WARDID AS origin_ward,
+    t1.CURR_WARDID AS destination_ward,
+    COUNT(*) AS transfer_count
+  FROM transfers AS t1
+  GROUP BY
+    origin_ward,
+    destination_ward
+  ORDER BY
+    transfer_count DESC
+  LIMIT 3
+), Readmissions AS (
+  SELECT
+    t.HADM_ID,
+    t.SUBJECT_ID,
+    t.PREV_WARDID,
+    t.CURR_WARDID,
+    CASE WHEN SUM(CASE WHEN i.ICUSTAY_ID IS NOT NULL THEN 1 ELSE 0 END) > 1 THEN 1 ELSE 0 END AS readmitted_to_icu
+  FROM transfers AS t
+  LEFT JOIN icustays AS i
+    ON t.HADM_ID = i.HADM_ID
+  GROUP BY
+    t.HADM_ID,
+    t.SUBJECT_ID,
+    t.PREV_WARDID,
+    t.CURR_WARDID
+)
+SELECT
+  tp.origin_ward,
+  tp.destination_ward,
+  tp.transfer_count,
+  COUNT(DISTINCT r.HADM_ID) AS total_transfers,
+  SUM(r.readmitted_to_icu) AS total_readmissions,
+  (
+    SUM(r.readmitted_to_icu) / COUNT(DISTINCT r.HADM_ID) * 100
+  ) AS readmission_rate
+FROM TransferPatterns AS tp
+LEFT JOIN Readmissions AS r
+  ON tp.origin_ward = r.PREV_WARDID AND tp.destination_ward = r.CURR_WARDID
+GROUP BY
+  tp.origin_ward,
+  tp.destination_ward,
+  tp.transfer_count
+ORDER BY
+  tp.transfer_count DESC;","The data shows the top 3 most frequent transfer patterns between wards, but unfortunately, there's no information on ICU readmissions for these patterns. 
+
+Here's a breakdown:
+
+* **Pattern 1:** Transfers from an unknown ward (None) to ward 52. There were 20 such transfers, but data on readmissions is missing (None).
+* **Pattern 2:** Transfers from an unknown ward (None) to ward 23. There were 15 such transfers, but data on readmissions is missing (None).
+* **Pattern 3:** Transfers from ward 55 to an unknown ward (None). There were 15 such transfers, but data on readmissions is missing (None).
+
+The absence of readmission data (represented by ""None"" in the results) might be due to various reasons, such as:
+
+* **Data Collection:** Readmission information might not be consistently collected or linked to transfer data in the database.
+* **Data Availability:** The specific wards involved in these top patterns might have limited data on ICU readmissions.
+
+To get a complete picture, we'd need further investigation into the missing data or adjustments in data collection practices."
+Identify the top 3 patients with the highest number of ER visits before any ICU admission.,,"WITH ERVisits AS (
+    SELECT 
+        a.SUBJECT_ID,
+        COUNT(DISTINCT a.HADM_ID) AS ERVisitCount
+    FROM admissions a
+    WHERE a.ADMISSION_LOCATION = 'EMERGENCY ROOM'
+    GROUP BY a.SUBJECT_ID
+),
+ICUAdmissions AS (
+    SELECT DISTINCT SUBJECT_ID
+    FROM icustays
+)
+SELECT 
+    erv.SUBJECT_ID,
+    erv.ERVisitCount
+FROM ERVisits erv
+LEFT JOIN ICUAdmissions icu ON erv.SUBJECT_ID = icu.SUBJECT_ID
+WHERE icu.SUBJECT_ID IS NULL
+ORDER BY erv.ERVisitCount DESC
+LIMIT 3;","The query identifies the top 3 patients who visited the ER most frequently, without ever being admitted to the ICU. 
+
+Since the SQL response is empty, it indicates that there are no patients meeting this criteria in the database. In other words, all patients who had one or more ER visits were also admitted to the ICU at some point."
+What are the top 3 most commonly used medications during the last three days of life for patients who expired in the hospital?,,"WITH LastThreeDays AS (
+  SELECT DISTINCT
+    a.SUBJECT_ID,
+    p.DRUG_NAME_GENERIC AS medication
+  FROM admissions AS a
+  JOIN prescriptions AS p
+    ON a.HADM_ID = p.HADM_ID
+  WHERE
+    a.HOSPITAL_EXPIRE_FLAG = 1 -- Patient expired in the hospital
+    AND p.STARTDATE BETWEEN DATE_SUB(a.DEATHTIME, INTERVAL 3 DAY) AND a.DEATHTIME
+)
+SELECT
+  medication,
+  COUNT(*) AS medication_count
+FROM LastThreeDays
+GROUP BY
+  medication
+ORDER BY
+  medication_count DESC
+LIMIT 3;","The top 3 most commonly used medications during the last three days of life for patients who died in the hospital are:
+
+1. **Furosemide:** This medication was used 35 times. 
+2. **Sodium Chloride 0.9% Flush:** This medication was used 17 times.
+3. **Morphine Sulfate (Syringe):** This medication was used 13 times."
+What are the top 3 most common comorbidities for patients diagnosed with heart attacks?,,"WITH HeartAttackPatients AS (
+  SELECT DISTINCT
+    SUBJECT_ID
+  FROM diagnoses_icd
+  WHERE
+    ICD9_CODE = '410'
+),
+
+Comorbidities AS (
+  SELECT DISTINCT
+    hap.SUBJECT_ID,
+    di.ICD9_CODE
+  FROM HeartAttackPatients AS hap
+  JOIN diagnoses_icd AS di
+    ON hap.SUBJECT_ID = di.SUBJECT_ID
+  WHERE
+    di.ICD9_CODE <> '410' -- Exclude heart attack diagnosis from comorbidities
+)
+
+SELECT
+  c.ICD9_CODE,
+  COUNT(*) AS ComorbidityCount,
+  RANK() OVER (ORDER BY COUNT(*) DESC) AS ComorbidityRank
+FROM Comorbidities AS c
+GROUP BY
+  c.ICD9_CODE
+ORDER BY
+  ComorbidityRank
+LIMIT 3;","Answer: The top 3 most common comorbidities for patients diagnosed with heart attacks are: 
+
+1. **ICD9 code: 401** (ComorbidityCount not shown), this code represents **essential hypertension**.
+2. **ICD9 code: 428** (ComorbidityCount not shown), this code represents **heart failure**. 
+3. **ICD9 code: 272** (ComorbidityCount not shown), this code represents **disorders of lipoid metabolism**.
+
+This means that among patients who had a heart attack, essential hypertension, heart failure, and disorders of lipoid metabolism are the three most frequently observed additional health conditions."
+What are the top 3 admission types that lead to the highest ICU readmission rates?,,"WITH Readmission AS (
+    SELECT
+        a.SUBJECT_ID,
+        a.ADMISSION_TYPE,
+        a.ADMITTIME,
+        a.DISCHTIME,
+        LEAD(a.ADMITTIME) OVER (PARTITION BY a.SUBJECT_ID ORDER BY a.ADMITTIME) AS next_admission,
+        ROW_NUMBER() OVER (PARTITION BY a.SUBJECT_ID ORDER BY a.ADMITTIME) AS admission_number
+    FROM admissions a
+),
+ICUAdmissions AS (
+  SELECT DISTINCT
+        r.SUBJECT_ID,
+        r.ADMISSION_TYPE,
+        r.admission_number
+    FROM Readmission r
+    JOIN icustays i ON r.SUBJECT_ID = i.SUBJECT_ID AND r.ADMITTIME = i.INTIME 
+),
+ReadmissionRates AS (
+    SELECT 
+        ia.ADMISSION_TYPE,
+        COUNT(*) AS total_admissions,
+        SUM(CASE WHEN ia.admission_number > 1 THEN 1 ELSE 0 END) AS total_readmissions,
+        (SUM(CASE WHEN ia.admission_number > 1 THEN 1 ELSE 0 END) / COUNT(*)) * 100 AS readmission_rate
+    FROM ICUAdmissions ia
+    GROUP BY ia.ADMISSION_TYPE
+)
+SELECT 
+    ADMISSION_TYPE,
+    total_admissions,
+    total_readmissions,
+    readmission_rate
+FROM ReadmissionRates
+ORDER BY readmission_rate DESC
+LIMIT 3;","The query results show that out of the different admission types, only 'URGENT' admissions resulted in ICU readmissions. There was only 1 'URGENT' admission in the dataset, and it did not lead to a readmission to the ICU. 
+
+The result does not list other admission types. This means there were no ICU readmissions for any other admission type in the dataset."
+What are the top 3 seasons for hospital admissions that result in higher mortality rates?,,"SELECT 
+    MONTH(admittime) AS admission_month,
+    COUNT(*) AS total_admissions,
+    SUM(CASE WHEN deathtime IS NOT NULL THEN 1 ELSE 0 END) AS total_deaths,
+    (SUM(CASE WHEN deathtime IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*)) * 100 AS mortality_rate
+FROM admissions
+GROUP BY admission_month
+ORDER BY mortality_rate DESC
+LIMIT 3;","The query results tell us the top 3 months with the highest mortality rates, but it doesn't directly translate to ""seasons"". 
+
+Here's what the numbers tell us:
+
+* **August (8th month):** There were 14 admissions this month, and sadly, all 14 patients passed away, resulting in a 100% mortality rate.
+* **September (9th month):**  There were 8 admissions with a 100% mortality rate, meaning all 8 patients passed away. 
+* **October (10th month):** This month saw 18 admissions, and unfortunately, all 18 patients died, leading to a 100% mortality rate.
+
+To determine seasonal trends, we'd need to analyze data over several years and group by broader timeframes (like Spring, Summer, Fall, Winter) instead of individual months."
+What are the top 3 diagnoses most commonly preceding ICU readmissions within 30 days?,,"WITH Readmissions AS (
+    SELECT 
+        hadm_id,
+        icustay_id,
+        LAG(icustay_id, 1) OVER (PARTITION BY subject_id ORDER BY intime) AS previous_icustay_id,
+        intime,
+        OUTTIME,
+        LAG(OUTTIME, 1) OVER (PARTITION BY subject_id ORDER BY intime) AS previous_discharge_time
+    FROM icustays
+),
+TimelyReadmissions AS (
+    SELECT 
+        r.hadm_id,
+        r.icustay_id
+    FROM Readmissions r
+    WHERE r.intime <= r.previous_discharge_time + INTERVAL '30' DAY
+),
+DiagnosesBeforeReadmission AS (
+    SELECT 
+        tr.hadm_id,
+        tr.icustay_id,
+        d.ICD9_CODE
+    FROM TimelyReadmissions tr
+    JOIN diagnoses_icd d ON tr.hadm_id = d.hadm_id
+)
+SELECT 
+    d.ICD9_CODE, 
+    di.short_title,
+    COUNT(*) AS ReadmissionCount
+FROM DiagnosesBeforeReadmission d
+JOIN d_icd_diagnoses di ON d.ICD9_CODE = di.ICD9_CODE
+GROUP BY d.ICD9_CODE, di.short_title
+ORDER BY ReadmissionCount DESC
+LIMIT 3;","The top 3 diagnoses patients received before being readmitted to the ICU within 30 days are:
+
+1. **Acute kidney failure NOS** (ICD9 code: 5849) with 9 readmissions.
+2. **Hypertension NOS** (ICD9 code: 4019) with 9 readmissions.
+3. **Atrial fibrillation** (ICD9 code: 42731) with 8 readmissions. 
+
+This means that these three diagnoses were the most frequent ones found in patients' medical records prior to them being readmitted to the ICU within a 30-day timeframe."
+What are the top 3 diagnostic codes most frequently leading to ICU admissions?,,rating respons,enerating response
+"What are the top 3 treatments that, when initiated within the first 12 hours of hospitalization, result in the lowest mortality rates?",,,"You asked for the top 3 treatments with the lowest mortality rates when initiated within the first 12 hours of hospitalization. 
+
+Unfortunately, I cannot answer your question using a SQL query on this database. This database contains information about hospital admissions, patient demographics, and medical procedures performed, but it lacks information on the timing or types of treatments administered.  Therefore, it's impossible to identify treatments and their correlation with mortality rates based on this data. 
+
+To answer your question, I would need a dataset that includes:
+
+* **Treatment details:**  The type of treatments given to each patient.
+* **Timing of treatments:** When each treatment was administered relative to the hospitalization time.
+* **Patient outcomes:**  Information on whether patients recovered or passed away during their hospital stay.
+
+With this additional information, I could then determine which treatments, when started within the first 12 hours, are associated with the highest survival rates."
+What are the top 3 most frequent comorbidities found in ICU patients?,,"SELECT 
+    d.SHORT_TITLE AS comorbidity, 
+    COUNT(DISTINCT di.HADM_ID) AS comorbidity_count
+FROM 
+    diagnoses_icd di
+JOIN
+    d_icd_diagnoses d ON di.ICD9_CODE = d.ICD9_CODE
+WHERE 
+    di.HADM_ID IN (SELECT DISTINCT HADM_ID FROM icustays) -- Filter for ICU patients only
+    AND d.SHORT_TITLE NOT LIKE 'Pneumonia%' -- Exclude pneumonia
+GROUP BY 
+    comorbidity
+ORDER BY 
+    comorbidity_count DESC
+LIMIT 
+    3;","The top 3 most frequent comorbidities found in ICU patients (excluding pneumonia) are:
+
+1. **Hypertension NOS** (High blood pressure with no specific cause): Found in 53 ICU patients.
+2. **Atrial fibrillation** (Irregular and often rapid heart rate): Found in 48 ICU patients.
+3. **Acute kidney failure NOS** (Sudden loss of kidney function with no specific cause): Found in 45 ICU patients."
+What are the top 3 medication types most commonly prescribed to patients with multiple diagnoses (3 or more)?,,"WITH PatientDiagnoses AS (
+    SELECT 
+        SUBJECT_ID,
+        COUNT(DISTINCT ICD9_CODE) AS num_diagnoses
+    FROM diagnoses_icd
+    GROUP BY SUBJECT_ID
+    HAVING COUNT(DISTINCT ICD9_CODE) >= 3
+),
+
+PatientMedications AS (
+  SELECT DISTINCT
+        pd.SUBJECT_ID,
+        p.DRUG_TYPE
+    FROM PatientDiagnoses pd
+    JOIN prescriptions p ON pd.SUBJECT_ID = p.SUBJECT_ID
+)
+
+SELECT 
+    DRUG_TYPE, 
+    COUNT(*) AS medication_count
+FROM PatientMedications
+GROUP BY DRUG_TYPE
+ORDER BY medication_count DESC
+LIMIT 3;","Answer: The top 3 medication types prescribed to patients with at least 3 diagnoses are: MAIN (94 patients), BASE (91 patients), and ADDITIVE (7 patients)."
+"What are the top 3 patients with the longest ICU stays, and what were their primary diagnoses?",,"SELECT 
+    p.SUBJECT_ID,
+    p.GENDER,
+    adm.ADMITTIME,
+    adm.DISCHTIME,
+    i.LOS,
+    d.ICD9_CODE,
+    di.SHORT_TITLE
+FROM patients p
+JOIN admissions adm ON p.SUBJECT_ID = adm.SUBJECT_ID
+JOIN icustays i ON adm.HADM_ID = i.HADM_ID
+JOIN diagnoses_icd d ON adm.HADM_ID = d.HADM_ID
+JOIN d_icd_diagnoses di ON d.ICD9_CODE = di.ICD9_CODE
+WHERE d.SEQ_NUM = 1
+ORDER BY i.LOS DESC
+LIMIT 3;","The top 3 patients with the longest ICU stays are:
+
+1. **Patient ID:** 10126, **Gender:** Female, **Admitted:** July 12, 2171, **Discharged:** August 16, 2171, **ICU Stay:** 35.4 days, **Primary Diagnosis:** Acute necrosis of liver 
+2. **Patient ID:** 44212, **Gender:** Female, **Admitted:** November 24, 2123, **Discharged:** December 30, 2123, **ICU Stay:** 31.1 days, **Primary Diagnosis:** Methicillin susceptible Staphylococcus aureus septicemia
+3. **Patient ID:** 42367, **Gender:** Female, **Admitted:** October 3, 2147, **Discharged:** November 4, 2147, **ICU Stay:** 29.3 days, **Primary Diagnosis:** Subdural hematoma - deep coma"
+What are the top 3 initial diagnoses that lead to the longest hospital stays?,,"WITH DiagnosisStay AS (
+  SELECT 
+    d.ICD9_CODE,
+    AVG(i.LOS) AS AvgLOS
+  FROM 
+    diagnoses_icd d
+  JOIN 
+    admissions a ON d.HADM_ID = a.HADM_ID
+  JOIN 
+    icustays i ON a.HADM_ID = i.HADM_ID
+  WHERE 
+    d.SEQ_NUM = 1
+  GROUP BY 
+    d.ICD9_CODE
+)
+SELECT 
+  ds.ICD9_CODE, 
+  ds.AvgLOS
+FROM 
+  DiagnosisStay ds
+ORDER BY 
+  ds.AvgLOS DESC
+LIMIT 
+  3;","The top 3 initial diagnoses associated with the longest average hospital stays are:
+
+1. **ICD9 code 03811** (Septicemia due to other specified organism) with an average stay of **31.12 days**.
+2. **ICD9 code 85225** (Other late effects of intracranial injury) with an average stay of **29.26 days**.
+3. **ICD9 code 80601** (Closed fracture of vertebral column with spinal cord injury) with an average stay of **22.39 days**. 
+
+This means that, on average, patients initially diagnosed with these conditions tend to have longer hospital stays compared to those with other initial diagnoses."
+What are the top 3 most common diagnoses in cases where the patient expired in the hospital?,,"SELECT d.SHORT_TITLE, COUNT(*) AS diagnosis_count
+FROM admissions a
+JOIN diagnoses_icd di ON a.HADM_ID = di.HADM_ID
+JOIN d_icd_diagnoses d ON di.ICD9_CODE = d.ICD9_CODE
+WHERE a.HOSPITAL_EXPIRE_FLAG = 1
+GROUP BY d.SHORT_TITLE
+ORDER BY diagnosis_count DESC
+LIMIT 3;","The top 3 most common diagnoses for patients who passed away in the hospital are:
+
+1. **Acute Respiratory Failure:** This was the diagnosis for 15 patients.
+2. **Atrial Fibrillation:** This affected 13 patients.
+3. **Hypertension NOS (Hypertension with no specific cause):** This was also the diagnosis for 13 patients."
+"List the first 3 patients' admissions, numbered sequentially by admission date, sorted by patient ID and admission time.",,"WITH PatientAdmissions AS (
+  SELECT
+    a.SUBJECT_ID,
+    a.ADMITTIME,
+    ROW_NUMBER() OVER (PARTITION BY a.SUBJECT_ID ORDER BY a.ADMITTIME) AS admission_number
+  FROM admissions AS a
+)
+SELECT
+  pa.SUBJECT_ID,
+  pa.ADMITTIME,
+  pa.admission_number
+FROM PatientAdmissions AS pa
+WHERE
+  pa.admission_number <= 3
+ORDER BY
+  pa.SUBJECT_ID,
+  pa.ADMITTIME;","This is a list of the first three hospital admissions for various patients. 
+
+Each row represents a unique admission, showing:
+
+* **SUBJECT_ID:** A unique identifier for each patient. 
+* **ADMITTIME:** The date and time the patient was admitted to the hospital.
+* **admission_number:**  This tells you whether this is the 1st, 2nd, or 3rd admission for this specific patient.
+
+For example, patient 10059 was admitted three times:
+* Their first admission was on August 7, 2150.
+* Their second admission was on August 22, 2150.
+
+The list is sorted by patient ID and then by admission date and time."
+"Rank each patient's diagnoses based on their hospital admission order, showing the first 3 results sorted by patient ID, hospital admission ID, and ICD-9 code.",,"WITH PatientDiagnosisRank AS (
+  SELECT
+    SUBJECT_ID,
+    HADM_ID,
+    ICD9_CODE,
+    ROW_NUMBER() OVER (PARTITION BY SUBJECT_ID, HADM_ID ORDER BY SEQ_NUM) AS DiagnosisRank
+  FROM diagnoses_icd
+)
+SELECT
+  SUBJECT_ID,
+  HADM_ID,
+  ICD9_CODE
+FROM PatientDiagnosisRank
+WHERE
+  DiagnosisRank <= 3
+ORDER BY
+  SUBJECT_ID,
+  HADM_ID,
+  ICD9_CODE;","This table shows the first three diagnoses for each patient's hospital admission. 
+
+* **SUBJECT\_ID**: This is a unique identifier for each patient.
+* **HADM\_ID**: This is a unique identifier for each hospital admission. A patient can have multiple admissions.
+* **ICD9\_CODE**: This is a code representing the patient's diagnosis during their hospital stay. 
+
+For example, patient 10006 was admitted to the hospital (HADM\_ID 142345) and their first three diagnoses were 5672, 99591, and 99662. The table is sorted by patient ID, then admission ID, and finally diagnosis code."
+"Find the first prescription date for each drug given to a patient during each hospital admission, showing the first 3 results sorted by patient ID, hospital admission ID, and drug name.",,rating respons,enerating response
+"Rank each drug prescription by its start date, expressed as a percentile across all prescriptions of that drug, showing the first 3 results sorted by drug name and start date.",,rating respons,enerating response
+"Calculate each patient's length of stay and the average length of stay for each month, showing the first 3 results sorted by admission time.",,"WITH PatientLOS AS (
+  SELECT
+    a.SUBJECT_ID,
+    a.ADMITTIME,
+    a.DISCHTIME,
+    ROUND((
+      TIME_TO_SEC(TIMEDIFF(a.DISCHTIME, a.ADMITTIME)) / 3600
+    ) / 24, 2) AS LOS_Days
+  FROM admissions AS a
+), LOSByMonth AS (
+  SELECT
+    p.SUBJECT_ID,
+    p.ADMITTIME,
+    p.LOS_Days,
+    MONTH(p.ADMITTIME) AS AdmissionMonth,
+    AVG(p.LOS_Days) OVER (PARTITION BY MONTH(p.ADMITTIME)) AS Avg_LOS_Month
+  FROM PatientLOS AS p
+)
+SELECT
+  *
+FROM LOSByMonth
+ORDER BY
+  ADMITTIME
+LIMIT 3;","The table shows the first 3 patients' length of stay and the average length of stay in the month they were admitted, sorted by their admission time. 
+
+* The first patient, with an ID of 42231, was admitted on August 29th, 2102 and stayed for 8.38 days. The average length of stay for August was 7.79 days. 
+
+* The second patient, with an ID of 43881, was admitted on September 24th, 2104 and stayed for 5.95 days. The average length of stay for September was 6.07 days.
+
+* This patient (43881) was admitted again on October 24th, 2104 and stayed for 8.09 days. The average length of stay for October was 9.02 days."
+"Calculate a 7-day rolling sum of unique drugs prescribed for each patient's hospital stay, showing the first 3 results sorted by patient ID, hospital admission ID, and prescription date.",,rating respons,enerating response
+"Analyze hourly chart events, calculating 12-hour moving averages and hourly changes, showing the first 3 results sorted by patient ID, hospital admission ID, ICU stay ID, and hour.",,"WITH HourlyChartEvents AS (
+  SELECT
+    ce.SUBJECT_ID,
+    ce.HADM_ID,
+    ce.ICUSTAY_ID,
+    DATE(ce.CHARTTIME) AS chart_date,
+    HOUR(ce.CHARTTIME) AS chart_hour,
+    AVG(ce.VALUENUM) AS avg_valuenum
+  FROM chartevents AS ce
+  GROUP BY
+    ce.SUBJECT_ID,
+    ce.HADM_ID,
+    ce.ICUSTAY_ID,
+    chart_date,
+    chart_hour
+), MovingAverages AS (
+  SELECT
+    hce.SUBJECT_ID,
+    hce.HADM_ID,
+    hce.ICUSTAY_ID,
+    hce.chart_date,
+    hce.chart_hour,
+    hce.avg_valuenum,
+    AVG(hce_prev.avg_valuenum) OVER (PARTITION BY hce.SUBJECT_ID, hce.HADM_ID, hce.ICUSTAY_ID ORDER BY hce.chart_date, hce.chart_hour ASC ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS moving_avg_12hr
+  FROM HourlyChartEvents AS hce
+  LEFT JOIN HourlyChartEvents AS hce_prev
+    ON hce_prev.SUBJECT_ID = hce.SUBJECT_ID
+    AND hce_prev.HADM_ID = hce.HADM_ID
+    AND hce_prev.ICUSTAY_ID = hce.ICUSTAY_ID
+    AND hce_prev.chart_date <= hce.chart_date
+    AND hce_prev.chart_hour <= hce.chart_hour
+)
+SELECT
+  ma.SUBJECT_ID,
+  ma.HADM_ID,
+  ma.ICUSTAY_ID,
+  ma.chart_date,
+  ma.chart_hour,
+  ma.avg_valuenum,
+  ma.moving_avg_12hr,
+  ma.avg_valuenum - LAG(ma.avg_valuenum, 1, ma.avg_valuenum) OVER (PARTITION BY ma.SUBJECT_ID, ma.HADM_ID, ma.ICUSTAY_ID ORDER BY ma.chart_date, ma.chart_hour) AS hourly_change
+FROM MovingAverages AS ma
+ORDER BY
+  ma.SUBJECT_ID,
+  ma.HADM_ID,
+  ma.ICUSTAY_ID,
+  ma.chart_date,
+  ma.chart_hour
+LIMIT 3;","The query you wrote successfully calculated the 12-hour moving averages and hourly changes for chartevents grouped hourly. However, it appears there is no chartevent data for the first 3 entries after sorting. This means there are no recorded chart events for patient 10006 during their first 3 hours (hour 21, 22, and 22) in the ICU stay 206504 of their hospital admission 142345. Therefore, the average values, moving averages, and hourly changes are all null (None)."
+"Summarize drug administrations for each patient's hospital stay, including count, first and last administration, total hours, and average duration, showing the first 3 results sorted by patient ID, hospital admission ID, and administration count in descending order.",,rating respons,enerating response
+"Analyze ICU length of stay patterns for patients with multiple ICU visits, including average LOS, cumulative LOS, and change from previous visit, displaying the first 3 results sorted by patient ID and ICU visit sequence.",,"WITH ICUVisitHistory AS (
+    SELECT
+        h.SUBJECT_ID,
+        h.HADM_ID,
+        i.ICUSTAY_ID,
+        i.INTIME,
+        i.OUTTIME,
+        DATEDIFF(i.OUTTIME, i.INTIME) AS LOS,
+        LAG(DATEDIFF(i.OUTTIME, i.INTIME), 1, 0) OVER (PARTITION BY h.SUBJECT_ID ORDER BY i.INTIME) AS PrevLOS,
+        ROW_NUMBER() OVER (PARTITION BY h.SUBJECT_ID ORDER BY i.INTIME) as VisitSequence
+    FROM icustays i
+    JOIN admissions h ON i.HADM_ID = h.HADM_ID
+),
+PatientICUSummary AS (
+  SELECT 
+    SUBJECT_ID,
+    AVG(LOS) AS AvgLOS, 
+    SUM(LOS) AS CumulativeLOS
+  FROM ICUVisitHistory
+  GROUP BY SUBJECT_ID
+  HAVING COUNT(DISTINCT ICUSTAY_ID) > 1
+)
+SELECT 
+    vih.SUBJECT_ID,
+    vih.HADM_ID,
+    vih.ICUSTAY_ID,
+    vih.INTIME,
+    vih.OUTTIME,
+    vih.LOS,
+    vih.PrevLOS,
+    COALESCE(vih.LOS - vih.PrevLOS, NULL) AS LOSChange,
+    pis.AvgLOS,
+    pis.CumulativeLOS,
+    vih.VisitSequence
+FROM ICUVisitHistory vih
+JOIN PatientICUSummary pis ON vih.SUBJECT_ID = pis.SUBJECT_ID
+WHERE vih.VisitSequence <= 3
+ORDER BY vih.SUBJECT_ID, vih.VisitSequence
+LIMIT 3;","The query returned information about the first three ICU stays of patients who had multiple ICU visits. Here's a breakdown:
+
+**Patient 10059:**
+
+* **Visit 1:**
+    * ICU Stay ID: 215460
+    * Admitted: August 7th, 2150 at 9:41 PM
+    * Discharged: August 9th, 2150 at 4:25 PM
+    * Length of Stay (LOS): 2 days 
+    * Change from Previous Visit: This was their first visit.
+* **Visit 2:**
+    * ICU Stay ID: 248755
+    * Admitted: August 22nd, 2150 at 5:33 PM
+    * Discharged: August 29th, 2150 at 8:09 PM 
+    * Length of Stay (LOS): 7 days
+    * Change from Previous Visit: Stayed 5 days longer than their first visit.
+* **Average LOS across all visits for Patient 10059:** 4.5 days
+* **Total (Cumulative) LOS across all visits for Patient 10059:** 9 days
+
+**Patient 10088:**
+
+* **Visit 1:**
+    * ICU Stay ID: 256345
+    * Admitted: January 5th, 2107 at 12:03 AM
+    * Discharged: January 8th, 2107 at 4:35 PM
+    * Length of Stay (LOS): 3 days
+    * Change from Previous Visit: This was their first visit.
+* **Average LOS across all visits for Patient 10088:** 2 days (Note: This average is likely lower because we're only seeing the first of multiple visits)
+* **Total (Cumulative) LOS across all visits for Patient 10088:** 6 days (Note: This cumulative time is likely higher because we're only seeing the first of multiple visits)"
+"Find the top 3 medications (by total dosage administered) given to patients during their ICU stay. Show the medication name, generic name, and the total dosage administered (round to 2 decimal places).",,"WITH tmp AS (
+  SELECT 
+    p.DRUG_NAME_POE AS MedicationName, 
+    p.DRUG_NAME_GENERIC AS GenericName, 
+    SUM(p.DOSE_VAL_RX) AS TotalDosage 
+  FROM prescriptions p
+  JOIN icustays i 
+    ON p.ICUSTAY_ID = i.ICUSTAY_ID
+  GROUP BY 
+    p.DRUG_NAME_POE, 
+    p.DRUG_NAME_GENERIC
+)
+SELECT 
+  MedicationName, 
+  GenericName, 
+  ROUND(TotalDosage, 2) AS TotalDosage
+FROM tmp
+ORDER BY 
+  TotalDosage DESC
+LIMIT 3;","The top 3 medications administered to patients during their ICU stay are:
+
+1. **Furosemide** (Generic Name: Furosemide): With a total dosage of 1,971,530.13 units. 
+2. **Heparin** (Generic Name: Heparin Sodium): With a total dosage of 603,300.00 units.
+3. **Acetaminophen** (Generic Name: Acetaminophen): With a total dosage of 54,900.00 units."
+"Find the 3 ICU stays with the longest lengths of stay (LOS) and identify the primary diagnosis (diagnoses_icd.ICD9_CODE with the lowest SEQ_NUM) for each patient during that stay. Show the subject ID, ICU stay ID, LOS (in days), and primary diagnosis code.",,"SELECT
+    icustays.SUBJECT_ID,
+    icustays.ICUSTAY_ID,
+    ROUND((outtime - intime)/24/60/60, 2) AS los_days,
+    diagnoses_icd.ICD9_CODE AS primary_diagnosis_code
+FROM
+    icustays
+LEFT JOIN
+    diagnoses_icd ON icustays.HADM_ID = diagnoses_icd.HADM_ID
+WHERE diagnoses_icd.SEQ_NUM = 1
+ORDER BY
+    los_days DESC
+LIMIT 3","The query returns the top 3 longest ICU stays along with their primary diagnosis codes:
+
+* **Patient 41976** had an ICU stay with **ID 242680** and stayed for **102661.4 days**. Their primary diagnosis code was **0389**.
+* **Patient 10126** had an ICU stay with **ID 249805** and stayed for **1213.59 days**. Their primary diagnosis code was **570**.
+* **Patient 44212** had an ICU stay with **ID 239396** and stayed for **1169.33 days**. Their primary diagnosis code was **03811**.
+
+It's unusual for an ICU stay to last for thousands of days. This data might contain errors and needs further investigation."
+"Find the 3 most common transfers a patient undergoes within an ICU stay (transfers table). Show the origin care unit (PREV_CAREUNIT) and the destination care unit (CURR_CAREUNIT) for these transfers, along with the count of how many times each transfer type occurred.",,"SELECT
+  PREV_CAREUNIT,
+  CURR_CAREUNIT,
+  COUNT(*) AS transfer_count
+FROM transfers
+WHERE
+  PREV_CAREUNIT IS NOT NULL AND CURR_CAREUNIT IS NOT NULL
+GROUP BY
+  PREV_CAREUNIT,
+  CURR_CAREUNIT
+ORDER BY
+  transfer_count DESC
+LIMIT 3;","The 3 most common transfers patients experience within an ICU stay are:
+
+1. **From MICU to MICU:** This transfer happened 11 times, likely indicating patients staying within the same care unit (Medical Intensive Care Unit) but potentially moving to a different room or bed. 
+2. **From CCU to CCU:** This transfer occurred 3 times, suggesting patients staying within the  (Cardiac Care Unit), but again, possibly changing rooms or beds.
+3. **From MICU to SICU:**  This transfer took place 2 times, indicating a shift from the Medical Intensive Care Unit to the Surgical Intensive Care Unit."
