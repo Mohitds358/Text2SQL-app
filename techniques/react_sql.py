@@ -55,7 +55,7 @@ prompt = ChatPromptTemplate.from_template(react_template)
 
 def get_sql_query(user_query: str, db: SQLDatabase, chat_history: list, schema: str):
     sql_chain = (
-        RunnableAssign({"schema": lambda _: schema}) | prompt | llm | StrOutputParser()
+            RunnableAssign({"schema": lambda _: schema}) | prompt | llm | StrOutputParser()
     )
 
     raw_query = sql_chain.invoke(
@@ -101,16 +101,16 @@ def get_response(user_query: str, db: SQLDatabase, chat_history: list, schema: s
         response_prompt = ChatPromptTemplate.from_template(response_template)
 
         chain = (
-            RunnableAssign(
-                {
-                    "schema": lambda _: schema,
-                    "query": lambda _: sql_query,
-                    "response": lambda _: sql_response,
-                }
-            )
-            | response_prompt
-            | llm
-            | StrOutputParser()
+                RunnableAssign(
+                    {
+                        "schema": lambda _: schema,
+                        "query": lambda _: sql_query,
+                        "response": lambda _: sql_response,
+                    }
+                )
+                | response_prompt
+                | llm
+                | StrOutputParser()
         )
 
         llm_response = chain.invoke(

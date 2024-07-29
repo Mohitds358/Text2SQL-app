@@ -16,11 +16,9 @@ def extract_schema(db: SQLDatabase) -> pd.DataFrame:
     """
     result = db.run(query)
 
-    # Print the type and content of result for debugging
     print(f"Type of result: {type(result)}")
     print(f"Content of result: {result}")
 
-    # Ensure result is a list of tuples
     if isinstance(result, str):
         try:
             result = ast.literal_eval(result)

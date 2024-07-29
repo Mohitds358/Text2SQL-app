@@ -23,10 +23,8 @@ def extract_sql_and_answer(response):
 
 
 def main():
-    # Load test queries
-    test_queries = pd.read_csv("P&E Prompt Test/Hard_TestPE.csv")
+    test_queries = pd.read_csv("P&E Prompt Test/Easy_TestPE 2.csv")
 
-    # Initialize database connection
     db = init_database(
         user="root",
         password="mohit",
@@ -58,7 +56,6 @@ def main():
             response = get_response(user_query, db, chat_history, selected_technique, chroma_db, schema_df)
             sql_query, answer = extract_sql_and_answer(response)
 
-            # Print the full response to console
             print(f"\nProcessed query {index + 1}/{len(test_queries)}:")
             print(f"NLQ: {user_query}")
             print(f"Response:\n{response}\n")
@@ -75,7 +72,7 @@ def main():
             test_queries.at[index, 'Answer'] = f"Error: {str(e)}"
 
         # Save the updated dataframe after each query
-        test_queries.to_csv("P&E Prompt Test/Hard_TestPE.csv", index=False)
+        test_queries.to_csv("P&E Prompt Test/Easy_TestPE 2.csv", index=False)
 
         # Sleep for 1 minute between queries
         if index < len(test_queries) - 1:

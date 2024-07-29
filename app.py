@@ -219,7 +219,6 @@ if user_query is not None and user_query.strip() != "":
 
         st.session_state.chat_history.append(AIMessage(content=response))
 
-# Footer
 st.markdown("---")
 st.markdown(
     "SQLMate v1.0 | [Report an issue](https://github.com/Mohitds358/Text2SQL-app)"
